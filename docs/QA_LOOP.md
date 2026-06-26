@@ -1,10 +1,11 @@
 # Boucle QA — AlphaLens Daily / Aura News
 
 > Artefact **durable et auto-mis-à-jour** de la boucle qualité. Chaque itération
-> de `/loop` LIT ce fichier, exécute UNE itération du cycle, met à jour les
-> sections « Journal » et « Backlog » + la checklist de sortie, puis commit/push.
-> Objectif : garantir la **meilleure UX** et des **reports conformes à la vision**
-> produit, avec un produit **techniquement full-fonctionnel**.
+> de `/loop` LIT ce fichier, exécute UN tour du **protocole self-checking**
+> (PLAN → DO → VERIFY → DECIDE), met à jour « Journal » + « Backlog » + les
+> **scores 1-10** des critères, puis commit/push. La boucle s'arrête à `FINAL`
+> (tous les critères ≥ 8). Objectif : **meilleure UX** + **reports conformes à la
+> vision** + produit **techniquement full-fonctionnel**.
 
 ## Rôles que tu incarnes (à chaque itération)
 - **Lead technique** — le produit doit marcher de bout en bout. Debugging
@@ -22,51 +23,55 @@ Flux cœur **Feed (news réelles) → Signal `/trade` (news → marchés + book)
 Library**. Briefings = digest de Signals (même moteur). World Cup = parqué.
 Article legacy (`/api/generate`, % fabriqués) = à neutraliser, hors-vision.
 
-## Cycle d'UNE itération (4 passes, backend-first)
-1. **Technique** — lancer `app` (`npm run dev`), créer/lancer les scripts CLI de
-   debug manquants dans `app/scripts/` (`debug-polymarket`, `debug-news`,
-   `debug-market-data`, `debug-openai`, `debug-supabase`, `debug-signal-flow`).
-   Logs structurés `[STEP][STATUS][REQUEST][OUTPUT][ERROR][NEXT]`. Identifier le
-   point d'échec exact. Ne pas toucher l'UI tant que le backend n'est pas validé.
-2. **Métier / qualité des reports** — générer de vrais Signals/Briefings et
-   vérifier la conformité vision : **0 proba fabriquée**, chaque % tracé à un
-   marché réel (question + % + volume + lien), pont news→portefeuille pertinent,
-   ton informationnel/éducatif (pas de « achète/vends »).
-3. **UX** — parcourir Feed → Signal → Library dans le navigateur, captures,
-   relever frictions / incohérences / états manquants.
-4. **Synthèse + Fix + Commit** — prioriser les écarts (Bloquant > Majeur >
-   Mineur), corriger backend-first, re-vérifier, mettre à jour ce fichier,
-   commit + push.
+## TASK (ce que la boucle doit produire)
+Amener le **flux cœur Feed → Signal `/trade` → Library** d'AlphaLens Daily à un
+niveau « produit » : techniquement full-fonctionnel, des reports qui font sens
+selon la vision (0 proba fabriquée, pont portefeuille réel), et la **meilleure UX**
+possible pour un trader.
 
-## Critères de sortie (la boucle s'arrête quand TOUT est ✅)
-**Critère 1 — Flux cœur full-fonctionnel**
-- [ ] Feed charge des news réelles sans erreur
-- [ ] Clic news → `/trade` génère un Signal de bout en bout (pas d'erreur backend)
-- [ ] Marchés liés Polymarket réels affichés (ou « aucun marché pertinent », pas de faux %)
-- [ ] Pont actifs/portefeuille présent et pertinent
-- [ ] Save → Library persiste et relit correctement
-- [~] Chaque intégration a un script CLI debug qui passe — **Polymarket ✅, news ✅** ; market-data, OpenAI, Supabase, signal-flow ❌ (à faire)
+## PROTOCOLE SELF-CHECKING (à chaque tour, sans poser de questions)
+> Source : template « SELF-CHECKING LOOP ». Pas de soft pass.
+1. **PLAN** — énoncer LE prochain pas unique (le point le plus faible du dernier VERIFY).
+2. **DO** — produire / améliorer le travail. **Méthode imposée = backend-first**
+   (scripts CLI `app/scripts/` + logs structurés AVANT l'UI ; jamais de secret en
+   clair). ⚠️ Backend-first est la *méthode*, PAS un critère de sortie. À chaque
+   tour, vérifier si le paradigme (`backend_first_debugging_paradigm.md`) doit être
+   ajusté au fil des updates ; si oui, l'ajuster.
+3. **VERIFY** — noter le résultat **1-10 sur CHAQUE critère** ci-dessous. Être
+   brutalement honnête. Lister exactement ce qui reste faible.
+4. **DECIDE** — si **tous les critères sont ≥ 8** → écrire **`FINAL`** et arrêter
+   (ne pas reprogrammer la boucle). Sinon → écrire **`ITERATING`** et recommencer
+   en corrigeant d'abord le score le plus bas.
 
-**Critère 2 — Zéro défaut bloquant/majeur**
-- [ ] 0 défaut bloquant ou majeur ouvert (UX) — *pass UX pas encore faite*
-- [ ] 0 défaut bloquant ou majeur ouvert (métier/qualité reports) — *audit reports pas encore fait*
-- [ ] 0 défaut bloquant ou majeur ouvert (technique) — *flux Signal e2e pas encore validé*
-- [x] `npm run build` passe sans erreur — **validé itération 1**
-- [ ] 0 proba fabriquée détectable (audit vision) — *audit pas encore fait*
+RÈGLES : jamais « done » tant qu'un critère est < 8 · chaque passe corrige le plus
+faible · ne pas poser de questions (faire une hypothèse raisonnable, la noter,
+continuer).
 
-> « si cela fait sens » : si un critère ne s'applique pas (ex. surface parquée),
-> le noter explicitement comme N/A justifié plutôt que de le forcer.
+## SUCCESS CRITERIA (stricts, notés 1-10 — cible ≥ 8 partout)
+- **C1 — Technique / full-fonctionnel** : flux cœur e2e sans erreur (Feed charge,
+  Signal se génère via `/api/news-trade`, Library persiste/relit), `npm run build`
+  OK, intégrations couvertes par des scripts CLI qui passent.
+- **C2 — Métier / qualité des reports** : conformité vision — **0 proba
+  fabriquée** (chaque % tracé à un marché réel), pont news→portefeuille présent et
+  pertinent, ton info/éducatif, le report « fait sens » pour un trader.
+- **C3 — UX** : parcours Feed → Signal → Library fluide et clair ; états
+  vides/chargement/erreur gérés ; cohérence visuelle ; confiance (sources visibles).
 
 ---
 
 ## Backlog (priorisé) — mis à jour à chaque itération
 > Statut : 🔴 bloquant · 🟠 majeur · 🟡 mineur · ✅ résolu
 
-- 🟠 [TECH] Scripts CLI de debug : ✅ créés pour news + Polymarket ; **reste à
-  faire** : market-data, OpenAI, Supabase, et `debug-signal-flow` (flux complet
-  news→RAG→actifs→synthèse).
-- 🟠 [TECH] Flux Signal de bout en bout (`/api/news-trade`) non encore validé
-  backend (embeddings OpenAI + re-rank + actifs + synthèse) — prochaine priorité.
+- 🟠 [UX] **Pass UX jamais faite** (C3) — point le plus faible. Parcours navigateur
+  Feed → Signal → Library, états vides/chargement/erreur, clarté, confiance.
+- 🟡 [TECH] Library : persistance Save → relecture non encore vérifiée e2e.
+- 🟡 [TECH] Scripts CLI restants : market-data + Supabase en script dédié (déjà
+  exercés indirectement via `debug:signal`). OpenAI couvert par `debug:signal`.
+- ✅ [TECH] Flux Signal e2e (`/api/news-trade`) validé : news→RAG→actifs→synthèse,
+  via `debug:signal` (scripts CLI). Grounding conforme (0 proba fabriquée).
+- ✅ [PRODUIT] Pont news→portefeuille vide pour certaines news → **corrigé** :
+  prompt renforcé (≥2-3 actifs liquides même hors watchlist). Vérifié (ARKQ/BOTZ/
+  ROBO sur news robotique).
 - 🟡 [TECH] (rétrogradé de 🟠) Fetch Polymarket > 2MB au cache Next.js : **isolé
   au World Cup** (`/events?tag_id=102232`, surface PARQUÉE), pas au flux cœur. Le
   cœur (`/markets`) plafonne à ~0.7MB/page (validé par `debug:polymarket`).
@@ -104,3 +109,30 @@ Article legacy (`/api/generate`, % fabriqués) = à neutraliser, hors-vision.
   signal-flow.
 - **Critères de sortie** : NON atteints → la boucle continue. Prochaine itération :
   `debug-signal-flow` + audit qualité d'un report réel (passe Métier).
+
+### Itération 2 — 2026-06-26 — Flux Signal e2e + grounding + protocole self-checking
+- **PLAN** : valider le flux Signal de bout en bout backend-first + auditer la
+  qualité métier d'un report réel.
+- **DO** :
+  - Reformaté la boucle au template **SELF-CHECKING LOOP** (PLAN/DO/VERIFY/DECIDE,
+    scores 1-10, stop à `FINAL` quand tout ≥8). Backend-first repositionné comme
+    *méthode* (pas critère), avec check d'ajustement du paradigme à chaque tour.
+  - Créé `scripts/debug-signal-flow.mjs` (+ `npm run debug:signal`) : exécute le
+    vrai flux via l'API (GET /api/news → POST /api/news-trade SSE) et audite le
+    grounding. Indépendant de l'UI.
+  - Lancé sur 3 news réelles : flux OK, **0 proba fabriquée** (chaque % tracé à
+    un marché réel ; dégradation gracieuse « 0 marché » sur l'IPO robotique).
+  - **Fix produit** : `trade-prompt.ts` renforcé → le pont news→portefeuille
+    renvoie désormais ≥2-3 actifs liquides même hors watchlist (vérifié).
+- **VERIFY (scores 1-10, brutalement honnête)** :
+  - **C1 Technique = 7/10** — Feed OK, Signal e2e OK, build OK, scripts CLI
+    news/polymarket/signal OK. Manque : persistance Library non vérifiée e2e,
+    pas de script dédié market-data/Supabase.
+  - **C2 Métier = 8/10** — 0 proba fabriquée confirmé, grounding structurel solide,
+    pont portefeuille corrigé. Faible : audit de pertinence du re-rank encore
+    superficiel (3 news seulement).
+  - **C3 UX = 3/10** — AUCUNE pass UX réelle encore (pas de parcours navigateur).
+    C'est le point le plus faible.
+- **DECIDE** : `ITERATING` (C1=7, C3=3 < 8). Prochain pas = corriger le plus
+  faible → **pass UX navigateur** (Feed → Signal → Library) + vérifier la
+  persistance Library.

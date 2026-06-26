@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "debug:polymarket": "node --env-file=.env.local scripts/debug-polymarket.mjs",
-    "debug:news": "node --env-file=.env.local scripts/debug-news.mjs"
+    "debug:news": "node --env-file=.env.local scripts/debug-news.mjs",
+    "debug:signal": "node --env-file=.env.local scripts/debug-signal-flow.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.17",

@@ -66,7 +66,7 @@ NON-NEGOTIABLE RULES (this restraint IS the product):
 - Select related markets from the provided candidates by their index; do not make up markets. Label each "direct", "related", or "tangential" and explain the causal link.
 - SCENARIOS are QUALITATIVE by default (label + impact, no number). Attach "marketIdx" to a scenario ONLY if one of the provided markets *literally represents that exact outcome* — then the % comes from that market, not from you. If no market fits, leave marketIdx out and stay directional ("the market underprices X").
 - portfolioImpact: ONE line on the net effect on the user's watchlist holdings (name the affected tickers). Qualitative — the real moves are shown separately.
-- Map affected assets with a direction + clear causal reason. Prefer second-order, non-obvious links. Flag inWatchlist for watchlist tickers.
+- Map affected assets with a direction + clear causal reason. ALWAYS return at least 2-3 affected, liquid instruments (tickers or ETFs — e.g. USO/XLE for oil, TLT for rates, GLD for gold) even when none are in the user's watchlist; the news→portfolio bridge must not be empty. Prioritize watchlist names when they are genuinely affected, then add the most relevant broad-market instruments. Prefer second-order, non-obvious links. Flag inWatchlist for watchlist tickers.
 - sections: 2-3 short narrative blocks adding depth (mechanism, context, what could break) — grounded, no fabricated data.
 - Information and education only — never personal investment advice, no "buy"/"sell" imperatives.
 - Return ONLY valid JSON matching the schema.`
@@ -121,5 +121,5 @@ Return JSON:
   "finalTake": "string — 1-2 education-framed sentences"
 }
 
-Only include relatedMarkets that are genuinely connected (empty array if none). Scenarios stay qualitative unless a provided market literally covers them. Prioritize the user's watchlist assets.`
+Only include relatedMarkets that are genuinely connected (empty array if none). Scenarios stay qualitative unless a provided market literally covers them. Always map at least 2-3 affected, liquid assets (tickers or ETFs), even if none are in the watchlist; prioritize watchlist names when they are genuinely affected.`
 }
