@@ -82,8 +82,12 @@ continuer).
   (3× la même valeur) → 4 stats réelles distinctes ; fausses alertes en dur
   (« SPY breaks 500 »…) → état honnête « coming soon » ; « {3} cr. » en dur retiré.
 - ✅ [UX] Section assets du report : état vide ajouté (cohérence avec marchés).
-- 🟡 [TECH] Scripts CLI restants : market-data + Supabase en script dédié (déjà
-  exercés indirectement via `debug:signal`). OpenAI couvert par `debug:signal`.
+- ✅ [TECH] Scripts CLI : **les 5 intégrations couvertes et passent** — news,
+  polymarket, signal (e2e), market-data (Twelve Data 3/3 + CoinGecko 2/2),
+  supabase (2 tables OK). OpenAI couvert par `debug:signal`.
+- ✅ [TECH] Persistance confirmée : Supabase `alphalens_signals` ≈8 lignes (store
+  figé des Signals opérationnel) + `alphalens_articles` ≈140. Library client =
+  zustand `persist` localStorage (code sain ; live à confirmer au navigateur).
 - ✅ [TECH] Flux Signal e2e (`/api/news-trade`) validé : news→RAG→actifs→synthèse,
   via `debug:signal` (scripts CLI). Grounding conforme (0 proba fabriquée).
 - ✅ [PRODUIT] Pont news→portefeuille vide pour certaines news → **corrigé** :
@@ -208,3 +212,25 @@ continuer).
 - **DECIDE** : `ITERATING` (C1=7, C3=7 < 8). Prochain pas = **C1** (vérifier
   persistance Library via `store.ts` + créer CLI market-data/Supabase) puis finir
   C3 (composants home restants + responsive).
+
+### Itération 5 — 2026-06-26 — Couverture CLI complète + persistance (C1)
+- **PLAN** : corriger le plus faible (C1=7) → persistance Library + CLI manquants.
+- **DO** (backend-first) :
+  - Revue `store.ts` : persistance Library = zustand `persist` (localStorage
+    `alphalens-store`), `saveTradeReport` dédup par id, `removeTradeReport` filtre
+    → setup standard et correct.
+  - Créé `debug-market-data.mjs` + `debug-supabase.mjs` (+ scripts npm). Logs
+    structurés, secrets masqués.
+  - **Résultats** : market-data ✅ (Twelve Data SPY/QQQ/GLD 3/3, CoinGecko BTC/ETH
+    2/2) ; supabase ✅ (`alphalens_signals` ≈8 lignes → store figé opérationnel,
+    `alphalens_articles` ≈140). Les 5 intégrations ont un CLI qui passe.
+  - Paradigme backend-first : RAS à ajuster (la couverture CLI le renforce).
+- **VERIFY (1-10, honnête)** :
+  - **C1 Technique = 8/10** — flux e2e OK, build OK, **5/5 intégrations couvertes
+    par des CLI qui passent**, persistance Supabase confirmée. Gap mineur :
+    persistance Library localStorage non vérifiée en live ; article legacy présent.
+  - **C2 Métier = 9/10** — inchangé (solide).
+  - **C3 UX = 7/10** — inchangé ce tour. Reste : composants home (LiveSearch,
+    FloatingChat, MatchdayWidget), responsive, vérif live navigateur.
+- **DECIDE** : `ITERATING` (C3=7 < 8). Prochain pas = **C3** (audit composants home
+  restants + responsive) pour viser ≥8 partout.

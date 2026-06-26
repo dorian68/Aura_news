@@ -9,7 +9,9 @@
     "lint": "eslint",
     "debug:polymarket": "node --env-file=.env.local scripts/debug-polymarket.mjs",
     "debug:news": "node --env-file=.env.local scripts/debug-news.mjs",
-    "debug:signal": "node --env-file=.env.local scripts/debug-signal-flow.mjs"
+    "debug:signal": "node --env-file=.env.local scripts/debug-signal-flow.mjs",
+    "debug:market-data": "node --env-file=.env.local scripts/debug-market-data.mjs",
+    "debug:supabase": "node --env-file=.env.local scripts/debug-supabase.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.17",
