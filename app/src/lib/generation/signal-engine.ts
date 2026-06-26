@@ -43,7 +43,7 @@ export async function generateSignal(item: NewsItem, watchlist: string[] = []): 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, maxRetries: 4 })
     const response = await client.chat.completions.create({
       model: 'gpt-4o-mini',
-      max_tokens: 1800,
+      max_tokens: 6000,   // article long-form GS (~1500-2500 mots) + données structurées
       messages: [
         { role: 'system', content: buildTradeSystemPrompt() },
         { role: 'user', content: buildTradeUserPrompt(item, candidates, watchItems) },
@@ -86,6 +86,7 @@ export async function generateSignal(item: NewsItem, watchlist: string[] = []): 
       newsSource: item.source,
       headline: parsed.headline ?? item.title,
       thesis: parsed.thesis ?? '',
+      keyTakeaways: arr<string>(parsed.keyTakeaways),
       relatedMarkets,
       assets,
       portfolioImpact: parsed.portfolioImpact ?? '',

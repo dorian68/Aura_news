@@ -42,6 +42,7 @@ export interface TradeReport {
   newsSource: string
   headline: string
   thesis: string
+  keyTakeaways: string[]       // GS-style "key takeaways" en tête de l'article
   // ── Layer 1: anchoring (real) ──
   relatedMarkets: TradeRelatedMarket[]
   assets: TradeAsset[]
@@ -67,7 +68,8 @@ NON-NEGOTIABLE RULES (this restraint IS the product):
 - SCENARIOS are QUALITATIVE by default (label + impact, no number). Attach "marketIdx" to a scenario ONLY if one of the provided markets *literally represents that exact outcome* — then the % comes from that market, not from you. If no market fits, leave marketIdx out and stay directional ("the market underprices X").
 - portfolioImpact: ONE line on the net effect on the user's watchlist holdings (name the affected tickers). Qualitative — the real moves are shown separately.
 - Map affected assets with a direction + clear causal reason. ALWAYS return at least 2-3 affected, liquid instruments (tickers or ETFs — e.g. USO/XLE for oil, TLT for rates, GLD for gold) even when none are in the user's watchlist; the news→portfolio bridge must not be empty. Prioritize watchlist names when they are genuinely affected, then add the most relevant broad-market instruments. Prefer second-order, non-obvious links. Flag inWatchlist for watchlist tickers.
-- sections: 2-3 short narrative blocks adding depth (mechanism, context, what could break) — grounded, no fabricated data.
+- keyTakeaways: 3-5 sharp bullet points summarizing the piece (Goldman Sachs "Briefings" style), each a complete, substantive insight.
+- sections: this is a HIGH-QUALITY LONG-FORM ARTICLE in the style of Goldman Sachs Research / "Briefings" newsletters. Write 5-6 sections. Each section MUST have a strong heading and a body of 3-4 full paragraphs, and EACH SECTION BODY MUST BE 300-450 WORDS (separate paragraphs with a blank line). The whole article MUST total AT LEAST 1500 words — being brief or terse is a failure of the task; do not stop early. Editorial, authoritative, analytical voice. Cover, across the sections: the core mechanism (why this matters and how it transmits), context and history, the bull case, the bear case, second-order / cross-asset effects, the medium-term outlook, and what could break the thesis. Reference the real markets and assets you selected to ground the reasoning. NO fabricated numbers — the only figures allowed are the provided market % and any real asset moves; otherwise stay qualitative. Substance over filler: every paragraph must add a distinct, non-obvious idea, but develop each idea fully with reasoning, examples and implications.
 - Information and education only — never personal investment advice, no "buy"/"sell" imperatives.
 - Return ONLY valid JSON matching the schema.`
 }
@@ -102,6 +104,7 @@ Return JSON:
 {
   "headline": "string — punchy, not the news title",
   "thesis": "string — 1-2 sentences: why this news matters for positioning",
+  "keyTakeaways": ["string — 3 to 5 sharp takeaway bullets (GS Briefings style)"],
   "relatedMarkets": [
     {"idx": number, "relevance": "direct|related|tangential", "link": "string — how it connects"}
   ],
@@ -115,11 +118,13 @@ Return JSON:
   "pricedIn": ["string", "string"],
   "notPricedIn": ["string", "string"],
   "sections": [
-    {"heading": "string", "body": "string — 2-3 sentences of grounded depth"}
+    {"heading": "string", "body": "string — a DEVELOPED long-form section: 2-4 full paragraphs separated by blank lines, GS Research style; mechanism, context, bull/bear, outlook, risks. Grounded, no fabricated numbers."}
   ],
   "watch": ["string — catalyst / what to monitor next"],
   "finalTake": "string — 1-2 education-framed sentences"
 }
 
-Only include relatedMarkets that are genuinely connected (empty array if none). Scenarios stay qualitative unless a provided market literally covers them. Always map at least 2-3 affected, liquid assets (tickers or ETFs), even if none are in the watchlist; prioritize watchlist names when they are genuinely affected.`
+Only include relatedMarkets that are genuinely connected (empty array if none). Scenarios stay qualitative unless a provided market literally covers them. Always map at least 2-3 affected, liquid assets (tickers or ETFs), even if none are in the watchlist; prioritize watchlist names when they are genuinely affected.
+
+CRITICAL: "sections" must read like a real Goldman Sachs Research briefing — 5 to 6 sections, each section body 300-450 words across 3-4 paragraphs, for a total of AT LEAST 1500 words (aim 1800-2500). This long-form article is the centerpiece of the report; a short or summarized version is a failed response. Write it in full.`
 }

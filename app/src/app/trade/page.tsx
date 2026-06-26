@@ -166,6 +166,18 @@ function Report({ report }: { report: TradeReport }) {
         <p className="al-serif" style={{ fontSize: 16.5, lineHeight: 1.5, color: '#3b414c', margin: 0 }}>{report.thesis}</p>
       </div>
 
+      {/* Key takeaways — GS Briefings style */}
+      {report.keyTakeaways && report.keyTakeaways.length > 0 && (
+        <div style={{ background: '#fff', border: '1px solid #e6e0d3', borderRadius: 12, padding: '14px 18px', marginBottom: 24 }}>
+          <div className="al-mono" style={{ fontSize: 10, letterSpacing: '.1em', textTransform: 'uppercase', color: '#5b50d8', marginBottom: 10 }}>Key takeaways</div>
+          <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {report.keyTakeaways.map((t, i) => (
+              <li key={i} className="al-serif" style={{ fontSize: 15, lineHeight: 1.5, color: '#2b2f37' }}>{t}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Portfolio impact — the bridge to your book */}
       {report.portfolioImpact && (
         <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start', background: '#eef1fb', border: '1px solid #dcd9f6', borderRadius: 12, padding: '13px 16px', marginBottom: 24 }}>
@@ -214,14 +226,16 @@ function Report({ report }: { report: TradeReport }) {
         <ListCard title="Not yet priced in" items={report.notPricedIn} color="#5b50d8" />
       </div>
 
-      {/* Narrative depth */}
+      {/* The briefing — long-form GS-style article (grounded on the markets/assets above) */}
       {report.sections && report.sections.length > 0 && (
-        <Section title="The detail">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <Section title="The briefing">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             {report.sections.map((sec, i) => (
               <div key={i}>
-                <h3 className="al-serif" style={{ fontSize: 18, fontWeight: 600, margin: '0 0 5px' }}>{sec.heading}</h3>
-                <p className="al-serif" style={{ fontSize: 15, lineHeight: 1.55, color: '#3b414c', margin: 0 }}>{sec.body}</p>
+                <h3 className="al-serif" style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-.01em', margin: '0 0 8px' }}>{sec.heading}</h3>
+                {sec.body.split(/\n\s*\n+/).filter(Boolean).map((para, j) => (
+                  <p key={j} className="al-serif" style={{ fontSize: 15.5, lineHeight: 1.68, color: '#3b414c', margin: '0 0 11px' }}>{para.trim()}</p>
+                ))}
               </div>
             ))}
           </div>
