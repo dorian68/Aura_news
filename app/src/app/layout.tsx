@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { AngleModal } from '@/components/modals/AngleModal'
 import { CreditsModal } from '@/components/modals/CreditsModal'
@@ -9,6 +9,11 @@ import { GoalAlert } from '@/components/worldcup/GoalAlert'
 export const metadata: Metadata = {
   title: 'AlphaLens Daily',
   description: 'For every story, see what the markets are already pricing — and what it means for your portfolio.',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

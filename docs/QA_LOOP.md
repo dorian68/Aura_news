@@ -67,9 +67,18 @@ continuer).
   dispo (interactions réelles, responsive).
 - 🟡 [UX] Surface article legacy encore mise en avant dans la Library (au-dessus
   des Signals) alors qu'elle est hors-vision (à neutraliser/reléguer).
-- 🟡 [UX] Composants home non encore audités : `LiveSearch`, `FloatingChat`,
-  `MatchdayWidget` (World Cup sur la home = dilution du cœur ?). Responsive/mobile
-  non vérifié.
+- 🟠 [UX] **App non-responsive** : `globals.css` n'a AUCUNE media query. Grilles
+  intérieures (trade/library) corrigées en `auto-fit/minmax`, mais la grille
+  **mosaïque/hero de la home** (`gridColumn: span 8/4`) reste desktop-only →
+  casse sur mobile. Prochain pas C3.
+- 🟡 [UX] `MatchdayWidget` (World Cup) sur la home = dilution du cœur (surface
+  parquée) — à reléguer éventuellement.
+- ✅ [UX] `FloatingChat` était une coquille morte (input/bouton sans handler, sur
+  toutes les pages) → remplacé par un vrai bouton « Open live search » qui route
+  vers la recherche fonctionnelle. `LiveSearch` audité = réel (`/api/markets/search`).
+- ✅ [UX] Responsive intrinsèque ajouté (sans media query) : stats Library
+  `repeat(4,1fr)`→`auto-fit/minmax`, 2-col Library `1.5fr 1fr`→`auto-fit`, trade
+  priced/notPriced `1fr 1fr`→`auto-fit`. + `viewport` explicite (layout).
 - ✅ [UX/PRODUIT] Home Masthead : 5 onglets de nav morts (→'/') supprimés ;
   badge mensonger « Demo data · fictional » → « Live data · research only » ;
   contrôles morts « Export PDF/Share link » retirés (Library).
@@ -234,3 +243,28 @@ continuer).
     FloatingChat, MatchdayWidget), responsive, vérif live navigateur.
 - **DECIDE** : `ITERATING` (C3=7 < 8). Prochain pas = **C3** (audit composants home
   restants + responsive) pour viser ≥8 partout.
+
+### Itération 6 — 2026-06-26 — UX : FloatingChat mort + responsive (partiel)
+- **PLAN** : corriger le plus faible (C3=7) → composants home restants + responsive.
+- **Hypothèse notée** : extension navigateur toujours non connectée → audit
+  code+HTML.
+- **DO** :
+  - Audit composants : aucun mock/fake résiduel. `LiveSearch` = réel
+    (`/api/markets/search` + moteur de chat). `FloatingChat` = **coquille morte**
+    (input + bouton sans handler, monté sur toutes les pages) → remplacé par un
+    vrai bouton « Open live search » routant vers la home (recherche fonctionnelle).
+  - **Découverte** : `globals.css` n'a AUCUNE media query → app desktop-only.
+    Corrigé 3 grilles en responsive intrinsèque (`auto-fit/minmax`, sans media
+    query) : stats Library, 2-col Library, priced/notPriced trade. Ajout
+    `viewport` explicite.
+  - Build ✅.
+  - Paradigme : RAS à ajuster.
+- **VERIFY (1-10, honnête)** :
+  - **C1 = 8/10** — inchangé.
+  - **C2 = 9/10** — inchangé.
+  - **C3 = 7/10** — vraie progression (fausse affordance éliminée, pages
+    intérieures responsive) MAIS la **grille mosaïque/hero de la home reste
+    desktop-only** (casse mobile) et **aucune vérif live navigateur**. Pas de soft
+    pass → reste 7.
+- **DECIDE** : `ITERATING` (C3=7 < 8). Prochain pas = rendre la **home
+  (Mosaic/HeroSection) responsive** — dernier gros point pour C3 ≥ 8.

@@ -98,7 +98,7 @@ export default function LibraryPage() {
         {/* Stats grid */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
           gap: 14,
           marginBottom: 28,
         }}>
@@ -139,8 +139,8 @@ export default function LibraryPage() {
           ))}
         </div>
 
-        {/* Two-column grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 24 }}>
+        {/* Two-column grid (stacks on narrow screens) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
 
           {/* LEFT: reports list */}
           <div>

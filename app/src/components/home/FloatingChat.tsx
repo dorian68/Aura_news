@@ -1,8 +1,10 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export function FloatingChat() {
   const [isOpen, setIsOpen] = useState(false)
+  const router = useRouter()
 
   return (
     <div
@@ -97,12 +99,12 @@ export function FloatingChat() {
                   color: '#3b414c',
                 }}
               >
-                Hi! I can help you price market events and analyze news. Click any article to get started, or ask me a question.
+                Hi! I can help you price market events and analyze news. Use live search on the home page, or click any story to generate its Signal.
               </p>
             </div>
           </div>
 
-          {/* Panel footer */}
+          {/* Panel footer — real entry point to the working live search */}
           <div
             style={{
               padding: '10px 16px',
@@ -112,22 +114,13 @@ export function FloatingChat() {
               alignItems: 'center',
             }}
           >
-            <input
-              type="text"
-              placeholder="Ask AlphaLens..."
-              style={{
-                background: '#f3f0e8',
-                border: 'none',
-                borderRadius: 8,
-                padding: '8px 12px',
-                fontSize: 12,
-                flex: 1,
-                outline: 'none',
-                color: '#16181d',
-                fontFamily: 'inherit',
-              }}
-            />
-            <button className="btn btn-ai btn-sm">→</button>
+            <button
+              className="btn btn-ai btn-sm"
+              style={{ width: '100%', justifyContent: 'center', fontWeight: 700 }}
+              onClick={() => { setIsOpen(false); router.push('/') }}
+            >
+              ✦ Open live search
+            </button>
           </div>
         </div>
       )}

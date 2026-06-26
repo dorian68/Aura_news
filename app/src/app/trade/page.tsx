@@ -209,7 +209,7 @@ function Report({ report }: { report: TradeReport }) {
       )}
 
       {/* Priced / not priced */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 26 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 26 }}>
         <ListCard title="Already priced in" items={report.pricedIn} color="#8b93a1" />
         <ListCard title="Not yet priced in" items={report.notPricedIn} color="#5b50d8" />
       </div>
