@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "debug:polymarket": "node --env-file=.env.local scripts/debug-polymarket.mjs",
+    "debug:news": "node --env-file=.env.local scripts/debug-news.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.17",
