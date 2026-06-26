@@ -1,0 +1,126 @@
+// Frozen Signal + live overlay — the scale layer.
+//
+//   • The expensive editorial Signal is generated ONCE (LLM) and stored in
+//     Supabase (watchlist-agnostic) → served to N users without re-generating.
+//   • The fresh bits (Polymarket %, asset moves) are hydrated at read time from
+//     shared, short-TTL caches keyed by market-id / ticker — fetched once per
+//     window and fanned out to everyone, so freshness scales independently.
+
+import { getDb } from '../supabase'
+import { fetchQuotes } from '../market-data'
+import { generateSignal } from './signal-engine'
+import type { TradeReport } from './trade-prompt'
+import type { NewsItem } from '../types'
+
+// ── Frozen store ──
+
+export async function getStoredSignal(newsId: string): Promise<TradeReport | null> {
+  const db = getDb()
+  if (!db) return null
+  const { data, error } = await db.from('alphalens_signals').select('payload').eq('news_id', newsId).maybeSingle()
+  if (error || !data) return null
+  return data.payload as TradeReport
+}
+
+async function storeSignal(report: TradeReport): Promise<void> {
+  const db = getDb()
+  if (!db) return
+  await db.from('alphalens_signals').upsert(
+    { news_id: report.newsId, payload: report, updated_at: new Date().toISOString() },
+    { onConflict: 'news_id' },
+  )
+}
+
+export interface SignalFetch { report: TradeReport; generated: boolean; usage?: { input: number; output: number } }
+
+/** Stored frozen signal, or generate-once-and-store. Watchlist-agnostic (shared). */
+export async function getOrCreateSignal(item: NewsItem): Promise<SignalFetch | null> {
+  const stored = await getStoredSignal(item.id)
+  if (stored) return { report: stored, generated: false }
+  const res = await generateSignal(item, [])
+  if (!res) return null
+  await storeSignal(res.report)
+  return { report: res.report, generated: true, usage: res.usage }
+}
+
+// ── Live overlay: shared caches keyed by market-id / ticker ──
+
+const GAMMA = 'https://gamma-api.polymarket.com'
+const TTL = 60_000
+const priceCache = new Map<string, { v: number; ts: number }>()
+const quoteCache = new Map<string, { v: number; ts: number }>()
+
+async function getMarketPrices(ids: string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>()
+  const now = Date.now()
+  const stale: string[] = []
+  for (const id of ids) {
+    const c = priceCache.get(id)
+    if (c && now - c.ts < TTL) out.set(id, c.v)
+    else stale.push(id)
+  }
+  await Promise.all(stale.map(async id => {
+    try {
+      const res = await fetch(`${GAMMA}/markets?id=${encodeURIComponent(id)}`, { headers: { Accept: 'application/json' }, next: { revalidate: 60 } })
+      if (!res.ok) return
+      const arr = await res.json()
+      const m = Array.isArray(arr) ? arr[0] : arr
+      if (!m) return
+      let prices: number[] = []
+      try { prices = JSON.parse(m.outcomePrices).map(Number) } catch { /* skip */ }
+      const yesPct = Math.round((prices[0] ?? 0.5) * 100)
+      priceCache.set(id, { v: yesPct, ts: now })
+      out.set(id, yesPct)
+    } catch { /* keep frozen value */ }
+  }))
+  return out
+}
+
+async function getQuoteMoves(syms: string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>()
+  const now = Date.now()
+  const stale: string[] = []
+  for (const s of syms) {
+    const c = quoteCache.get(s)
+    if (c && now - c.ts < TTL) out.set(s, c.v)
+    else stale.push(s)
+  }
+  const key = process.env.TWELVE_DATA_API_KEY || ''
+  if (stale.length && key) {
+    try {
+      const quotes = await fetchQuotes(stale, key)
+      for (const q of quotes) { quoteCache.set(q.sym, { v: q.changePct, ts: now }); out.set(q.sym, q.changePct) }
+    } catch { /* keep frozen value */ }
+  }
+  return out
+}
+
+/**
+ * Overlay fresh Polymarket %/asset moves onto a frozen signal and apply the
+ * user's watchlist. No LLM, no per-user generation — pure hydration.
+ */
+export async function hydrateSignal(frozen: TradeReport, watchlist: string[] = []): Promise<TradeReport> {
+  const ids = [
+    ...frozen.relatedMarkets.map(m => m.marketId),
+    ...frozen.scenarios.map(s => s.marketId),
+  ].filter((x): x is string => !!x)
+
+  const [prices, moves] = await Promise.all([
+    getMarketPrices([...new Set(ids)]),
+    getQuoteMoves(watchlist),
+  ])
+  const wl = new Set(watchlist)
+
+  return {
+    ...frozen,
+    relatedMarkets: frozen.relatedMarkets.map(m =>
+      m.marketId && prices.has(m.marketId) ? { ...m, yesPct: prices.get(m.marketId)! } : m),
+    scenarios: frozen.scenarios.map(s =>
+      s.marketId && prices.has(s.marketId) ? { ...s, prob: prices.get(s.marketId)! } : s),
+    assets: frozen.assets.map(a => ({
+      ...a,
+      inWatchlist: wl.has(a.sym),
+      changePct: moves.has(a.sym) ? moves.get(a.sym) : a.changePct,
+    })),
+  }
+}

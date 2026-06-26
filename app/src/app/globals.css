@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,500&family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+
+/* ── Root ── */
+body {
+  background: #efeae0;
+  color: #16181d;
+  font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* ── Typography classes ── */
+.al-serif { font-family: 'Source Serif 4', Georgia, serif; }
+.al-mono  { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-feature-settings: "tnum"; }
+
+/* ── Animations ── */
+@keyframes al-marquee { from { transform: translateX(0) } to { transform: translateX(-50%) } }
+@keyframes al-blink   { 0%, 49% { opacity: 1 } 50%, 100% { opacity: 0 } }
+@keyframes al-spin    { to { transform: rotate(360deg) } }
+@keyframes al-rise    { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: none } }
+@keyframes al-pulse   { 0%, 100% { opacity: .55; transform: scale(1) } 50% { opacity: 1; transform: scale(1.06) } }
+@keyframes al-orb     { 0% { transform: rotate(0deg) } 100% { transform: rotate(360deg) } }
+@keyframes al-sheen   { 0% { background-position: -160% 0 } 100% { background-position: 260% 0 } }
+@keyframes al-sweep   { 0% { transform: translateX(-130%) skewX(-16deg) } 55%, 100% { transform: translateX(420%) skewX(-16deg) } }
+@keyframes al-bob     { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
+@keyframes al-flame   { 0%, 100% { transform: scale(1) rotate(-4deg) } 50% { transform: scale(1.18) rotate(4deg) } }
+@keyframes al-tug     { 0%, 100% { transform: translate(-50%,-50%) translateX(-3px) } 50% { transform: translate(-50%,-50%) translateX(3px) } }
+@keyframes al-orbspin { to { transform: rotate(360deg) } }
+
+/* ── Utility animations ── */
+.al-rise { animation: al-rise .5s cubic-bezier(.2,.7,.3,1) both; }
+
+/* ── Card hover ── */
+.al-card-hover {
+  transition: transform .18s cubic-bezier(.2,.7,.3,1), box-shadow .18s, border-color .18s;
+}
+.al-card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 40px rgba(20,26,40,.13);
+  border-color: #cfc7b5 !important;
+}
+
+/* ── Link hover ── */
+.al-link-hover { transition: color .15s; }
+.al-link-hover:hover { color: #184a73 !important; }
+
+/* ── Chip hover ── */
+.al-chip { transition: background .14s, border-color .14s, transform .12s; }
+.al-chip:hover { background: #efeefb !important; border-color: #cdc6f4 !important; transform: translateY(-1px); }
+
+/* ── Matchday chip ── */
+.al-mday-chip { transition: transform .14s, background .14s, border-color .14s; }
+.al-mday-chip:hover { transform: translateY(-2px); background: rgba(255,255,255,.06) !important; border-color: #3a4150 !important; }
+
+/* ── CTA sheen ── */
+.al-cta-sheen { position: relative; overflow: hidden; transition: transform .16s, filter .16s; }
+.al-cta-sheen:hover { transform: translateY(-1px); filter: brightness(1.08); }
+.al-cta-sheen::after {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 36%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent);
+  transform: skewX(-18deg);
+  animation: al-sweep 3s ease-in-out infinite;
+}
+
+/* ── Bubble ── */
+.al-bubble { transition: transform .2s cubic-bezier(.2,.8,.25,1), box-shadow .2s; }
+.al-bubble:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 20px 50px rgba(91,80,216,.5); }
+.al-bubble:active { transform: translateY(-1px) scale(.98); }
+.al-bub-arrow { transition: transform .2s cubic-bezier(.2,.8,.25,1); }
+.al-bubble:hover .al-bub-arrow { transform: translate(2px,-2px); }
+
+/* ── Shared button base ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background .15s, border-color .15s, color .15s, transform .1s;
+  font-family: inherit;
+  text-decoration: none;
+}
+.btn:active { transform: scale(.98); }
+
+.btn-sm { height: 32px; padding: 0 14px; font-size: 12.5px; gap: 6px; }
+
+.btn-ai {
+  background: #16181d;
+  color: #fff;
+  border-color: #16181d;
+  gap: 6px;
+}
+.btn-ai:hover { background: #23262f; border-color: #23262f; }
+
+/* ── Badge ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.badge-positive { background: #e8f5ef; color: #0f7d56; border-color: #b6dfc8; }
+.badge-primary  { background: #efeefb; color: #4a40c0; border-color: #ddd9f6; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d9d3c4; border-radius: 99px; }
+
+/* ── Ticker ── */
+.ticker-wrap { overflow: hidden; white-space: nowrap; }
+.ticker-inner { display: flex; width: max-content; animation: al-marquee 34s linear infinite; }
+.ticker-inner:hover { animation-play-state: paused; }
