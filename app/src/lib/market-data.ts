@@ -154,6 +154,38 @@ export async function fetchAssetQuotes(symbols: string[]): Promise<Map<string, A
   return out
 }
 
+// ── Sparklines : séries historiques RÉELLES via Yahoo Finance (gratuit, sans clé) ──
+const YF_CHART = 'https://query1.finance.yahoo.com/v8/finance/chart'
+
+function yahooSym(sym: string): string {
+  const id = CRYPTO_MAP[sym.toUpperCase()]
+  if (id) {                                   // crypto → format Yahoo (BTC-USD…)
+    const tick = sym.toUpperCase().replace(/[/-]?USD$/, '')
+    return `${tick}-USD`
+  }
+  return sym.toUpperCase()
+}
+
+/** ~1 mois de cours de clôture réels pour la sparkline. [] si indisponible. */
+export async function fetchSparkline(sym: string): Promise<number[]> {
+  try {
+    const res = await fetch(`${YF_CHART}/${encodeURIComponent(yahooSym(sym))}?range=1mo&interval=1d`,
+      { headers: { 'User-Agent': 'Mozilla/5.0' }, cache: 'no-store' })
+    if (!res.ok) return []
+    const d = await res.json()
+    const closes = d?.chart?.result?.[0]?.indicators?.quote?.[0]?.close
+    return Array.isArray(closes) ? closes.filter((x: unknown): x is number => typeof x === 'number') : []
+  } catch { return [] }
+}
+
+/** Sparklines pour plusieurs symboles (parallèle). Symbole sans série = absent. */
+export async function fetchSparklines(symbols: string[]): Promise<Map<string, number[]>> {
+  const out = new Map<string, number[]>()
+  const uniq = [...new Set(symbols.map(s => s.trim().toUpperCase()).filter(Boolean))]
+  await Promise.all(uniq.map(async s => { const v = await fetchSparkline(s); if (v.length > 1) out.set(s, v) }))
+  return out
+}
+
 // Bandeau macro : libellés lisibles → symboles réels (ETF proxies, données Finnhub).
 export const MACRO_TICKERS: { label: string; sym: string }[] = [
   { label: 'S&P 500', sym: 'SPY' },

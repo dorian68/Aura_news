@@ -7,7 +7,7 @@
 //     window and fanned out to everyone, so freshness scales independently.
 
 import { getDb } from '../supabase'
-import { fetchAssetQuotes, MACRO_TICKERS, type AssetQuote } from '../market-data'
+import { fetchAssetQuotes, fetchSparklines, MACRO_TICKERS, type AssetQuote } from '../market-data'
 import { generateSignal } from './signal-engine'
 import type { TradeReport, MacroItem } from './trade-prompt'
 import type { NewsItem } from '../types'
@@ -76,6 +76,30 @@ async function getMarketPrices(ids: string[]): Promise<Map<string, number>> {
   return out
 }
 
+// Sparklines (séries historiques) — cache plus long (donnée journalière).
+const SPARK_TTL = 30 * 60 * 1000
+const sparkCache = new Map<string, { v: number[]; ts: number }>()
+
+async function getSparklines(syms: string[]): Promise<Map<string, number[]>> {
+  const out = new Map<string, number[]>()
+  const now = Date.now()
+  const stale: string[] = []
+  for (const s of syms.map(x => x.toUpperCase())) {
+    const c = sparkCache.get(s)
+    if (c && now - c.ts < SPARK_TTL) { if (c.v.length) out.set(s, c.v) }
+    else stale.push(s)
+  }
+  if (stale.length) {
+    const fresh = await fetchSparklines(stale)
+    for (const s of stale) {                       // mémorise aussi les vides (évite de re-fetch en boucle)
+      const v = fresh.get(s) ?? []
+      sparkCache.set(s, { v, ts: now })
+      if (v.length) out.set(s, v)
+    }
+  }
+  return out
+}
+
 // Quotes réelles (prix + % jour) par symbole, cache court partagé.
 async function getAssetQuotes(syms: string[]): Promise<Map<string, AssetQuote>> {
   const out = new Map<string, AssetQuote>()
@@ -110,18 +134,18 @@ export async function hydrateSignal(frozen: TradeReport, watchlist: string[] = [
     ...MACRO_TICKERS.map(m => m.sym),
   ].map(s => s.toUpperCase()))]
 
-  const [prices, quotes] = await Promise.all([
+  const [prices, quotes, sparks] = await Promise.all([
     getMarketPrices([...new Set(ids)]),
     getAssetQuotes(quoteSyms),
+    getSparklines(quoteSyms),
   ])
 
   // Bandeau macro : niveaux réels uniquement (un proxy sans donnée est omis).
-  const macro: MacroItem[] = MACRO_TICKERS
-    .map(m => {
-      const q = quotes.get(m.sym.toUpperCase())
-      return q ? { label: m.label, sym: m.sym, price: q.price, changePct: q.changePct } : null
-    })
-    .filter((x): x is MacroItem => x !== null)
+  const macro: MacroItem[] = []
+  for (const m of MACRO_TICKERS) {
+    const q = quotes.get(m.sym.toUpperCase())
+    if (q) macro.push({ label: m.label, sym: m.sym, price: q.price, changePct: q.changePct, spark: sparks.get(m.sym.toUpperCase()) })
+  }
 
   return {
     ...frozen,
@@ -136,6 +160,7 @@ export async function hydrateSignal(frozen: TradeReport, watchlist: string[] = [
         inWatchlist: wl.has(a.sym.toUpperCase()),
         price: q ? q.price : a.price,
         changePct: q ? q.changePct : a.changePct,
+        spark: sparks.get(a.sym.toUpperCase()) ?? a.spark,
       }
     }),
     macro,

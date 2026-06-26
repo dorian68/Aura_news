@@ -178,6 +178,7 @@ function Report({ report }: { report: TradeReport }) {
                   <span className="al-mono" style={{ fontSize: 14, fontWeight: 700 }}>{m.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                   <span className="al-mono" style={{ fontSize: 11, fontWeight: 600, color: m.changePct >= 0 ? '#0f7d56' : '#c43d34' }}>{m.changePct >= 0 ? '+' : ''}{m.changePct.toFixed(2)}%</span>
                 </div>
+                {m.spark && m.spark.length > 1 && <div style={{ marginTop: 5 }}><Sparkline data={m.spark} w={92} h={20} /></div>}
               </div>
             ))}
           </div>
@@ -318,6 +319,12 @@ function AssetCard({ a }: { a: TradeAsset }) {
       </div>
       <div className="al-mono" style={{ fontSize: 9.5, color: '#a9a18f', marginBottom: 5 }}>{a.horizon}</div>
       <p style={{ fontSize: 12.5, lineHeight: 1.45, color: '#59606e', margin: 0 }}>{a.reason}</p>
+      {a.spark && a.spark.length > 1 && (
+        <div style={{ marginTop: 10, paddingTop: 9, borderTop: '1px solid #f0ece1', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span className="al-mono" style={{ fontSize: 8.5, color: '#a9a18f', textTransform: 'uppercase', letterSpacing: '.05em' }}>30d</span>
+          <Sparkline data={a.spark} w={120} h={24} />
+        </div>
+      )}
     </div>
   )
 }
@@ -359,6 +366,19 @@ function ListCard({ title, items, color }: { title: string; items: string[]; col
         {items.length === 0 && <li style={{ fontSize: 13, color: '#a9a18f', listStyle: 'none', marginLeft: -16 }}>—</li>}
       </ul>
     </div>
+  )
+}
+
+function Sparkline({ data, w = 76, h = 22, color }: { data: number[]; w?: number; h?: number; color?: string }) {
+  if (!data || data.length < 2) return null
+  const min = Math.min(...data), max = Math.max(...data), r = (max - min) || 1
+  const pts = data.map((v, i) => `${(i / (data.length - 1) * w).toFixed(1)},${(h - ((v - min) / r) * h).toFixed(1)}`).join(' ')
+  const up = data[data.length - 1] >= data[0]
+  const c = color || (up ? '#0f7d56' : '#c43d34')
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', overflow: 'visible' }}>
+      <polyline points={pts} fill="none" stroke={c} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
   )
 }
 
