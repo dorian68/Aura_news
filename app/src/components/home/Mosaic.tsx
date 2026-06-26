@@ -41,11 +41,11 @@ export function Mosaic({ news }: Props) {
   }
 
   return (
-    <section style={{ display: 'grid', gridTemplateColumns: 'repeat(12,1fr)', gap: 16 }}>
+    <section className="al-mosaic" style={{ display: 'grid', gridTemplateColumns: 'repeat(12,1fr)', gap: 16 }}>
 
       {/* Feature — 8 cols */}
       {feature && (
-        <article className="al-card-hover" onClick={() => go(feature)} style={{ gridColumn: 'span 8', background: '#f7f4ec', border: '1px solid #e6e0d3', borderRadius: 14, padding: '26px 28px', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
+        <article className="al-card-hover al-mosaic-cell" onClick={() => go(feature)} style={{ gridColumn: 'span 8', background: '#f7f4ec', border: '1px solid #e6e0d3', borderRadius: 14, padding: '26px 28px', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
             <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.09em', textTransform: 'uppercase', color: '#2469a6' }}>{feature.category}</span>
             <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#c0b9a8' }} />
@@ -64,7 +64,7 @@ export function Mosaic({ news }: Props) {
 
       {/* Dark mover — 4 cols */}
       {mover && (
-        <article className="al-card-hover" onClick={() => go(mover)} style={{ gridColumn: 'span 4', background: 'linear-gradient(165deg,#1a1f27,#11151b)', border: '1px solid #232a33', borderRadius: 14, padding: 20, cursor: 'pointer', color: '#fff', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+        <article className="al-card-hover al-mosaic-cell" onClick={() => go(mover)} style={{ gridColumn: 'span 4', background: 'linear-gradient(165deg,#1a1f27,#11151b)', border: '1px solid #232a33', borderRadius: 14, padding: 20, cursor: 'pointer', color: '#fff', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
             <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: '#7eb0e8' }}>{mover.category}</span>
             <span className="badge" style={{ marginLeft: 'auto', background: 'rgba(255,255,255,.06)', color: '#aab2bf', border: '1px solid #2b323b', fontSize: 9.5 }}>{mover.time}</span>
@@ -80,7 +80,7 @@ export function Mosaic({ news }: Props) {
 
       {/* Wide — 8 cols */}
       {wide && (
-        <article className="al-card-hover" onClick={() => go(wide)} style={{ gridColumn: 'span 8', background: '#f7f4ec', border: '1px solid #e6e0d3', borderRadius: 14, padding: '20px 22px', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
+        <article className="al-card-hover al-mosaic-cell" onClick={() => go(wide)} style={{ gridColumn: 'span 8', background: '#f7f4ec', border: '1px solid #e6e0d3', borderRadius: 14, padding: '20px 22px', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
             <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: '#2469a6' }}>{wide.category}</span>
             <span className="al-mono" style={{ fontSize: 10.5, color: '#8b93a1' }}>{wide.source} · {wide.time}</span>
@@ -96,7 +96,7 @@ export function Mosaic({ news }: Props) {
 
       {/* Standard ×2 — 4 cols each */}
       {[std1, std2].filter(Boolean).map((item, idx) => (
-        <article key={idx} className="al-card-hover" onClick={() => go(item as NewsItem)} style={{ gridColumn: 'span 4', background: '#f7f4ec', border: '1px solid #e6e0d3', borderRadius: 14, padding: 20, cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
+        <article key={idx} className="al-card-hover al-mosaic-cell" onClick={() => go(item as NewsItem)} style={{ gridColumn: 'span 4', background: '#f7f4ec', border: '1px solid #e6e0d3', borderRadius: 14, padding: 20, cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 11 }}>
             <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: '#2469a6' }}>{(item as NewsItem).category}</span>
             <span className="al-mono" style={{ fontSize: 10.5, color: '#8b93a1' }}>{(item as NewsItem).time}</span>
@@ -110,18 +110,6 @@ export function Mosaic({ news }: Props) {
           </div>
         </article>
       ))}
-
-      {/* AD-UI promo — 4 cols (static feature promo, not data) */}
-      <article style={{ gridColumn: 'span 4', background: 'radial-gradient(420px 200px at 80% -20%, rgba(91,80,216,.4), transparent), linear-gradient(165deg,#211d4a,#171432)', border: '1px solid #322c66', borderRadius: 14, padding: 20, cursor: 'pointer', color: '#fff', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
-        <div className="al-cta-sheen" style={{ width: 40, height: 40, borderRadius: 12, background: 'conic-gradient(from 0deg,#5b50d8,#2469a6,#2f9488,#5b50d8)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, marginBottom: 14, animation: 'al-orb 6s linear infinite' }}>✦</div>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.1em', textTransform: 'uppercase', color: '#a99bff', marginBottom: 6 }}>AD-UI · Adaptive composer</div>
-        <h4 className="al-serif" style={{ fontSize: 21, lineHeight: 1.14, fontWeight: 600, marginBottom: 8 }}>Compose any article — your topic, your layout</h4>
-        <p style={{ fontSize: 12.5, lineHeight: 1.5, color: '#c3bff0', marginBottom: 'auto' }}>Chat with AD-UI. It picks the right layout blocks, builds the article live, and lets you reorder or extend it on the fly.</p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 16 }}>
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff' }}>Open the composer</span>
-          <span>→</span>
-        </div>
-      </article>
 
     </section>
   )

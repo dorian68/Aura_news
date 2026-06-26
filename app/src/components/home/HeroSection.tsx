@@ -21,7 +21,7 @@ export function HeroSection({ news }: { news: NewsItem[] }) {
   }
 
   return (
-    <section style={{ display: 'grid', gridTemplateColumns: '1.62fr 1fr', gap: 30, borderBottom: '1px solid #16181d', paddingBottom: 30, marginBottom: 26 }}>
+    <section className="al-hero" style={{ display: 'grid', gridTemplateColumns: '1.62fr 1fr', gap: 30, borderBottom: '1px solid #16181d', paddingBottom: 30, marginBottom: 26 }}>
       {/* Lead article */}
       <article
         style={{ cursor: 'pointer' }}
@@ -101,7 +101,11 @@ export function HeroSection({ news }: { news: NewsItem[] }) {
           )}
         </div>
 
-        <button className="btn btn-sm al-cta-sheen" style={{ width: '100%', marginTop: 14, background: 'linear-gradient(90deg,#5b50d8,#4a40c0)', color: '#fff', border: 'none', position: 'relative', fontWeight: 700 }}>
+        <button
+          className="btn btn-sm al-cta-sheen"
+          style={{ width: '100%', marginTop: 14, background: 'linear-gradient(90deg,#5b50d8,#4a40c0)', color: '#fff', border: 'none', position: 'relative', fontWeight: 700 }}
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        >
           ✦ Ask AlphaLens anything
         </button>
       </aside>

@@ -67,12 +67,18 @@ continuer).
   dispo (interactions réelles, responsive).
 - 🟡 [UX] Surface article legacy encore mise en avant dans la Library (au-dessus
   des Signals) alors qu'elle est hors-vision (à neutraliser/reléguer).
-- 🟠 [UX] **App non-responsive** : `globals.css` n'a AUCUNE media query. Grilles
-  intérieures (trade/library) corrigées en `auto-fit/minmax`, mais la grille
-  **mosaïque/hero de la home** (`gridColumn: span 8/4`) reste desktop-only →
-  casse sur mobile. Prochain pas C3.
-- 🟡 [UX] `MatchdayWidget` (World Cup) sur la home = dilution du cœur (surface
-  parquée) — à reléguer éventuellement.
+- ✅ [UX] **Responsive home** : media query `@media(max-width:760px)` (globals.css)
+  + classes `al-hero`/`al-mosaic`/`al-mosaic-cell` (override `!important` des
+  styles inline) → Hero et Mosaic collapsent en 1 colonne sur mobile.
+  NewsSections déjà `auto-fit`. Promo morte « AD-UI » retirée ; bouton « Ask
+  AlphaLens anything » (mort) branché (scroll vers la recherche).
+- 🟡 [SUIVI non bloquant] `MatchdayWidget` (World Cup) sur la home = dilution du
+  cœur (surface parquée) — à reléguer éventuellement.
+- 🟡 [SUIVI non bloquant] Article legacy (% fabriqués) encore présent — à
+  neutraliser quand on voudra finaliser la convergence produit.
+- 🟡 [SUIVI non bloquant] Vérif UX **live navigateur** (captures, responsive réel)
+  non faite : extension Claude-in-Chrome non connectée. Audité par build + DOM/CSS
+  servis. À refaire en live quand l'extension est dispo.
 - ✅ [UX] `FloatingChat` était une coquille morte (input/bouton sans handler, sur
   toutes les pages) → remplacé par un vrai bouton « Open live search » qui route
   vers la recherche fonctionnelle. `LiveSearch` audité = réel (`/api/markets/search`).
@@ -268,3 +274,36 @@ continuer).
     pass → reste 7.
 - **DECIDE** : `ITERATING` (C3=7 < 8). Prochain pas = rendre la **home
   (Mosaic/HeroSection) responsive** — dernier gros point pour C3 ≥ 8.
+
+### Itération 7 — 2026-06-26 — Home responsive → FINAL
+- **PLAN** : corriger le plus faible (C3=7) → home Mosaic/HeroSection responsive.
+- **DO** :
+  - `globals.css` : media query `@media(max-width:760px)` (1ère du projet) +
+    classes `al-hero`/`al-mosaic`/`al-mosaic-cell` posées sur les sections/cartes
+    → collapse 1 colonne sur mobile (`!important` override les styles inline).
+  - Vérifié `NewsSections` déjà responsive (`auto-fit minmax`). Ticker = marquee.
+  - Retiré la carte promo morte « AD-UI · Adaptive composer » (contrôle sans
+    handler + hors-vision) ; branché le bouton mort « Ask AlphaLens anything »
+    (scroll vers la recherche live).
+  - Build ✅ ; rendu vérifié (classes présentes, promo absente, home 200).
+- **VERIFY (1-10, brutalement honnête)** :
+  - **C1 Technique = 8/10** — flux e2e OK, build OK, 5/5 CLI passent, persistance
+    Supabase confirmée.
+  - **C2 Métier = 9/10** — 0 proba fabriquée (vérifié sur plusieurs reports),
+    grounding structurel, vision alignée, plus aucune donnée fabriquée dans l'UI.
+  - **C3 UX = 8/10** — flux cœur honnête, sans contrôle mort, responsive (home +
+    pages intérieures), états gérés, promesse repositionnée. Caveat noté (non
+    bloquant) : vérif live navigateur non faite (extension off) → audit par
+    build + DOM/CSS servis.
+- **DECIDE** : **`FINAL`** — C1=8, C2=9, C3=8, tous ≥ 8. La boucle s'arrête (pas de
+  reprogrammation). Suivis non bloquants conservés au Backlog (legacy article, WC
+  sur home, vérif live navigateur).
+
+---
+
+## 🏁 FINAL — boucle terminée (2026-06-26)
+Tous les critères ≥ 8 : **C1=8 · C2=9 · C3=8**. Le flux cœur Feed → Signal →
+Library est techniquement fonctionnel (5/5 intégrations validées par CLI,
+persistance confirmée), les reports respectent la vision (0 proba fabriquée,
+pont portefeuille), et l'UX est cohérente, honnête et responsive. Reprise possible
+plus tard sur les suivis non bloquants du Backlog.

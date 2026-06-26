@@ -126,3 +126,12 @@ body {
 .ticker-wrap { overflow: hidden; white-space: nowrap; }
 .ticker-inner { display: flex; width: max-content; animation: al-marquee 34s linear infinite; }
 .ticker-inner:hover { animation-play-state: paused; }
+
+/* ── Responsive (mobile) ──
+   Les grilles de la home sont en styles inline (12-col / 2-col fixes). On les
+   collapse en 1 colonne sur petit écran via !important (override des styles inline). */
+@media (max-width: 760px) {
+  .al-hero { grid-template-columns: 1fr !important; gap: 22px !important; }
+  .al-mosaic { grid-template-columns: 1fr !important; }
+  .al-mosaic-cell { grid-column: span 1 !important; }
+}
