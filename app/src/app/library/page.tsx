@@ -103,10 +103,10 @@ export default function LibraryPage() {
           marginBottom: 28,
         }}>
           {[
-            { label: 'Reports generated', value: savedReports.length },
-            { label: 'Credits used',      value: savedReports.length },
-            { label: 'Saved reports',     value: savedReports.length },
-            { label: 'Credits left',      value: credits.count },
+            { label: 'Saved signals', value: savedTradeReports.length },
+            { label: 'Saved reports', value: savedReports.length },
+            { label: 'Watchlist',     value: watchlist.length },
+            { label: 'Credits left',  value: credits.plan === 'power' ? '∞' : credits.count },
           ].map((stat) => (
             <div
               key={stat.label}
@@ -390,9 +390,6 @@ function WatchlistCard({ watchlist }: { watchlist: string[] }) {
               {sym}
             </span>
             <span style={{ flex: 1 }} />
-            <span className="al-mono" style={{ fontSize: 12.5, color: '#8b93a1' }}>
-              {3} cr.
-            </span>
           </div>
         ))}
         {watchlist.length === 0 && (
@@ -405,13 +402,9 @@ function WatchlistCard({ watchlist }: { watchlist: string[] }) {
 
 /* ── Alerts card (stub) ───────────────────────────────────── */
 
-const STUB_ALERTS = [
-  { color: '#5b50d8', text: 'SPY breaks 500 — alert active' },
-  { color: '#0f7d56', text: 'CPI release this Thursday' },
-  { color: '#c43d34', text: 'Macro risk: Fed pivot signal' },
-]
-
 function AlertsCard() {
+  // Honnêteté produit : pas de fausses alertes en dur. Tant que la feature n'est
+  // pas branchée sur de vraies données, on affiche un état "à venir" explicite.
   return (
     <div style={{
       background: '#fff',
@@ -425,20 +418,9 @@ function AlertsCard() {
       >
         Alerts &amp; saved searches
       </h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {STUB_ALERTS.map((alert, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <span style={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              background: alert.color,
-              flexShrink: 0,
-            }} />
-            <span style={{ fontSize: 13, color: '#59606e' }}>{alert.text}</span>
-          </div>
-        ))}
-      </div>
+      <p style={{ fontSize: 13, color: '#8b93a1', margin: 0, lineHeight: 1.5 }}>
+        No alerts yet. Price &amp; catalyst alerts are coming soon.
+      </p>
     </div>
   )
 }

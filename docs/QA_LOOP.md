@@ -62,9 +62,18 @@ continuer).
 ## Backlog (priorisé) — mis à jour à chaque itération
 > Statut : 🔴 bloquant · 🟠 majeur · 🟡 mineur · ✅ résolu
 
-- 🟠 [UX] **Pass UX jamais faite** (C3) — point le plus faible. Parcours navigateur
-  Feed → Signal → Library, états vides/chargement/erreur, clarté, confiance.
-- 🟡 [TECH] Library : persistance Save → relecture non encore vérifiée e2e.
+- 🟠 [UX] Parcours navigateur non exécuté en live (extension Claude-in-Chrome non
+  connectée) — audit fait sur code+HTML. À refaire en live quand l'extension est
+  dispo (interactions réelles, responsive).
+- 🟡 [UX] Library : contrôles morts « Export PDF » / « Share link » (onClick vide)
+  — soit les brancher, soit les retirer.
+- 🟡 [UX] Surface article legacy encore mise en avant dans la Library (au-dessus
+  des Signals) alors qu'elle est hors-vision (à neutraliser/reléguer).
+- 🟡 [TECH] Library : persistance Save → relecture non encore vérifiée e2e (live).
+- ✅ [UX/PRODUIT] Library : **données fabriquées supprimées** — stats trompeuses
+  (3× la même valeur) → 4 stats réelles distinctes ; fausses alertes en dur
+  (« SPY breaks 500 »…) → état honnête « coming soon » ; « {3} cr. » en dur retiré.
+- ✅ [UX] Section assets du report : état vide ajouté (cohérence avec marchés).
 - 🟡 [TECH] Scripts CLI restants : market-data + Supabase en script dédié (déjà
   exercés indirectement via `debug:signal`). OpenAI couvert par `debug:signal`.
 - ✅ [TECH] Flux Signal e2e (`/api/news-trade`) validé : news→RAG→actifs→synthèse,
@@ -136,3 +145,31 @@ continuer).
 - **DECIDE** : `ITERATING` (C1=7, C3=3 < 8). Prochain pas = corriger le plus
   faible → **pass UX navigateur** (Feed → Signal → Library) + vérifier la
   persistance Library.
+
+### Itération 3 — 2026-06-26 — Pass UX + honnêteté de la Library
+- **PLAN** : corriger le plus faible (C3 UX=3) → pass UX réelle du flux cœur.
+- **Hypothèse notée** (règle « ne pas poser de questions ») : extension
+  Claude-in-Chrome NON connectée → pass UX faite via **code des composants +
+  HTML rendu** au lieu d'interactions live. À refaire en live plus tard.
+- **DO** (audit `/trade`, `/library`) :
+  - `/trade` jugé solide (états loading/error, marché vide géré, sources visibles,
+    disclaimer). Ajout d'un **état vide** à la section assets (cohérence).
+  - `/library` : **données fabriquées détectées et supprimées** (contraire à la
+    vision « ne jamais fabriquer ») → (1) stats : 3 libellés affichaient la même
+    valeur sur le store legacy → remplacés par 4 stats réelles (signals, reports,
+    watchlist, crédits) ; (2) AlertsCard : fausses alertes en dur → état honnête
+    « coming soon » ; (3) « {3} cr. » en dur retiré de la watchlist.
+  - Paradigme backend-first : RAS à ajuster ce tour (ces fixes sont pur affichage,
+    sans dépendance backend — noté).
+  - `npm run build` ✅ (0 erreur, 21 routes).
+- **VERIFY (1-10, honnête)** :
+  - **C1 Technique = 7/10** — inchangé (build OK) ; persistance Library pas encore
+    vérifiée en live ; pas de CLI dédié market-data/Supabase.
+  - **C2 Métier = 8/10** — renforcé par la suppression des données fabriquées de
+    l'UI (cohérence vision honnêteté).
+  - **C3 UX = 6/10** — gros défauts d'honnêteté corrigés, `/trade` solide. Reste :
+    pas de vérif live navigateur, contrôles morts « Export PDF/Share link »,
+    legacy encore en avant, responsive non vérifié, Feed/home pas encore audité.
+- **DECIDE** : `ITERATING` (C3=6, C1=7 < 8). Prochain pas = poursuivre C3 (audit
+  home/Feed + retirer/brancher les contrôles morts) puis C1 (persistance Library
+  live + CLI market-data/Supabase).

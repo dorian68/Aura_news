@@ -188,9 +188,15 @@ function Report({ report }: { report: TradeReport }) {
 
       {/* Assets */}
       <Section title="What it touches in your book">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
-          {report.assets.map((a, i) => <AssetCard key={i} a={a} />)}
-        </div>
+        {report.assets.length === 0 ? (
+          <div className="al-mono" style={{ fontSize: 12.5, color: '#8b93a1', padding: '6px 0' }}>
+            ⓘ No specific asset linkage for this story — see the markets and narrative above.
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+            {report.assets.map((a, i) => <AssetCard key={i} a={a} />)}
+          </div>
+        )}
       </Section>
 
       {/* Scenarios — qualitative unless a real market covers them */}
