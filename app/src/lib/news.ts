@@ -53,7 +53,8 @@ const normKey = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0
 async function fetchFinnhub(category: string): Promise<Record<string, unknown>[]> {
   if (!FINNHUB_KEY) return []
   try {
-    const res = await fetch(`https://finnhub.io/api/v1/news?category=${category}&token=${FINNHUB_KEY}`, { next: { revalidate: 300 } })
+    // L'ingesteur doit toujours lire le live — pas de cache (sinon corpus figé).
+    const res = await fetch(`https://finnhub.io/api/v1/news?category=${category}&token=${FINNHUB_KEY}`, { cache: 'no-store' })
     if (!res.ok) return []
     const data = await res.json()
     return Array.isArray(data) ? data : []

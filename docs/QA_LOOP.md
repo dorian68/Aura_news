@@ -301,6 +301,29 @@ continuer).
 
 ---
 
+## ⚠️ CORRECTION post-usage réel (2026-06-26) — le FINAL était prématuré
+L'utilisateur a testé l'app en vrai et a vu : (1) articles vieux de 4 jours,
+(2) impression de « pas de génération » au clic. **Mon erreur de boucle** : j'ai
+validé la couche *source live* (`debug:news` = Finnhub frais) et le build/DOM,
+mais **jamais la couche réellement servie** (`/api/news` = corpus Supabase figé)
+ni l'expérience navigateur. Leçon backend-first : tester la couche que voit
+l'utilisateur, pas une couche adjacente.
+
+**Causes racines & fixes :**
+- 🔴→✅ **Feed périmé** : le cache de fetch Next.js (`.next/cache`) servait des
+  réponses Finnhub/RSS figées 4 jours. L'ingesteur lisait donc du vieux. Fix
+  durable : `fetchFinnhub` + `fetchRss` passés en `cache:'no-store'` (sources de
+  l'ingesteur = toujours live) + ingestion relancée. Feed désormais < 1h.
+- 🔴→✅ **« Pas de génération »** : les articles cliqués étaient périmés et leur
+  Signal était **en cache (instantané) et vide** (assets:[], généré avant le
+  correctif du pont portefeuille). Avec des news fraîches, chaque clic régénère un
+  Signal riche (vérifié : 3 marchés réels + 3 actifs XLK/NVDA/ARKK + portfolioImpact).
+- ✅ **Garde-fou ajouté** : `debug-signal-flow.mjs` vérifie maintenant la
+  **fraîcheur du feed SERVI** (échec si > 24h) — aurait attrapé le bug.
+- 🟡 [SUIVI] Localement, l'ingestion n'est pas automatique (prévue cron Vercel) :
+  relancer `curl -X POST localhost:3000/api/ingest` pour rafraîchir, ou brancher
+  un cron. À industrialiser.
+
 ## 🏁 FINAL — boucle terminée (2026-06-26)
 Tous les critères ≥ 8 : **C1=8 · C2=9 · C3=8**. Le flux cœur Feed → Signal →
 Library est techniquement fonctionnel (5/5 intégrations validées par CLI,

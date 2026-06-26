@@ -42,7 +42,7 @@ export async function fetchRss(url: string, source: string): Promise<RssItem[]> 
     const res = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AlphaLensBot/1.0)', Accept: 'application/rss+xml, application/xml, text/xml' },
       signal: ctrl.signal,
-      next: { revalidate: 300 },
+      cache: 'no-store',   // toujours du live pour l'ingesteur (pas de corpus figé)
     })
     if (!res.ok) return []
     const xml = await res.text()

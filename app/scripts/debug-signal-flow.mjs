@@ -19,6 +19,11 @@ async function getNews() {
   if (!Array.isArray(items) || !items.length) { fail('0 news'); return null }
   const item = items[IDX] || items[0]
   ok(`${items.length} news`)
+  // Garde-fou FRAÎCHEUR sur la couche RÉELLEMENT SERVIE (pas la source live) :
+  // c'est ce que voit l'utilisateur. Un corpus figé = échec, même si la source live est fraîche.
+  const ageH = (Date.now() - new Date(item.publishedAt).getTime()) / 3600000
+  if (ageH > 24) fail(`FEED PÉRIMÉ: article le plus récent a ${ageH.toFixed(0)}h (>24h) — ingestion/cache à vérifier`)
+  else ok(`fraîcheur feed servi: ${ageH.toFixed(1)}h`)
   line('OUTPUT', `id=${item.id} | "${(item.title || '').slice(0, 70)}"`)
   return item
 }
