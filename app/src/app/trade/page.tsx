@@ -376,68 +376,117 @@ function ListCard({ title, items, color }: { title: string; items: string[]; col
   )
 }
 
-function Sparkline({ data, w = 76, h = 22, color }: { data: number[]; w?: number; h?: number; color?: string }) {
+function Sparkline({ data, w = 76, h = 22, color, fluid = false }: { data: number[]; w?: number; h?: number; color?: string; fluid?: boolean }) {
   if (!data || data.length < 2) return null
   const min = Math.min(...data), max = Math.max(...data), r = (max - min) || 1
   const pts = data.map((v, i) => `${(i / (data.length - 1) * w).toFixed(1)},${(h - ((v - min) / r) * h).toFixed(1)}`).join(' ')
   const up = data[data.length - 1] >= data[0]
   const c = color || (up ? '#0f7d56' : '#c43d34')
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', overflow: 'visible' }}>
+    <svg width={fluid ? '100%' : w} height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio={fluid ? 'none' : 'xMidYMid meet'} style={{ display: 'block', overflow: 'visible' }}>
       <polyline points={pts} fill="none" stroke={c} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   )
 }
 
-// Bloc graphique inline (intégré dans le fil de l'article).
-function InlineChart({ title, price, changePct, spark }: { title: string; price?: number; changePct?: number; spark?: number[] }) {
+// ── Figures éditoriales (style journal NYT : flottées, légende, le texte habille) ──
+function Figure({ side, full, caption, children }: { side: 'left' | 'right'; full: boolean; caption: string; children: React.ReactNode }) {
+  const style: React.CSSProperties = full
+    ? { clear: 'both', width: '100%', margin: '18px 0' }
+    : { float: side, width: '46%', maxWidth: 360, margin: side === 'left' ? '5px 26px 14px 0' : '5px 0 14px 26px' }
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, background: '#fff', border: '1px solid #e6e0d3', borderRadius: 11, padding: '11px 15px', margin: '6px 0 14px' }}>
-      <div>
-        <div className="al-mono" style={{ fontSize: 12, fontWeight: 700, color: '#16181d' }}>{title}</div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginTop: 2 }}>
-          {typeof price === 'number' && <span className="al-mono" style={{ fontSize: 13, fontWeight: 700 }}>{price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>}
-          {typeof changePct === 'number' && <span className="al-mono" style={{ fontSize: 11, fontWeight: 600, color: changePct >= 0 ? '#0f7d56' : '#c43d34' }}>{changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%</span>}
-          <span className="al-mono" style={{ fontSize: 8.5, color: '#a9a18f', textTransform: 'uppercase', letterSpacing: '.05em' }}>30d</span>
-        </div>
-      </div>
-      {spark && spark.length > 1 && <Sparkline data={spark} w={150} h={34} />}
-    </div>
+    <figure className="al-figure" style={style}>
+      <div style={{ background: '#fbf9f4', border: '1px solid #e6e0d3', borderRadius: 4, padding: '12px 14px' }}>{children}</div>
+      <figcaption className="al-serif" style={{ fontSize: 11.5, fontStyle: 'italic', color: '#8b93a1', marginTop: 6, lineHeight: 1.4 }}>{caption}</figcaption>
+    </figure>
   )
 }
 
-// Rendu d'un corps de section : paragraphes + blocs inline [[CHART:x]] / [[MARKET:i]].
-// Un token qui ne résout pas vers une donnée réelle est simplement ignoré (jamais fabriqué).
+function FigureChart({ title, price, changePct, spark, full }: { title: string; price?: number; changePct?: number; spark?: number[]; full: boolean }) {
+  return (
+    <>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+        <span className="al-mono" style={{ fontSize: 12, fontWeight: 700, color: '#16181d' }}>{title}</span>
+        <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+          {typeof price === 'number' && <span className="al-mono" style={{ fontSize: 12, fontWeight: 700 }}>{price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>}
+          {typeof changePct === 'number' && <span className="al-mono" style={{ fontSize: 11, fontWeight: 600, color: changePct >= 0 ? '#0f7d56' : '#c43d34' }}>{changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%</span>}
+        </span>
+      </div>
+      {spark && spark.length > 1 && <Sparkline data={spark} w={300} h={full ? 78 : 52} fluid />}
+    </>
+  )
+}
+
+function FigureMarket({ m }: { m: TradeRelatedMarket }) {
+  return (
+    <a href={m.url} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
+        <span className="al-serif" style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.2 }}>{m.question}</span>
+        <span className="al-mono" style={{ fontSize: 17, fontWeight: 700, color: '#2469a6' }}>{m.yesPct}%</span>
+      </div>
+      <div style={{ height: 6, background: '#eee8db', borderRadius: 99 }}>
+        <div style={{ width: `${m.yesPct}%`, height: '100%', background: '#2469a6', borderRadius: 99 }} />
+      </div>
+    </a>
+  )
+}
+
+// Rendu d'un corps de section : prose + figures éditoriales [[CHART:x|side|size]] / [[MARKET:i|...]].
+// Placement piloté par le LLM (côté/taille), alternance auto sinon. Token non résolu = ignoré.
 function SectionBody({ body, assetMap, macroMap, marketMap }: {
   body: string
   assetMap: Map<string, TradeAsset>
   macroMap: Map<string, { label: string; price: number; changePct: number; spark?: number[] }>
   marketMap: Map<number, TradeRelatedMarket>
 }) {
-  const re = /\[\[(CHART|MARKET):([^\]]+)\]\]/g
+  const re = /\[\[(CHART|MARKET):([^\]|]+)(?:\|([^\]]+))?\]\]/g
   const nodes: React.ReactNode[] = []
-  const used = new Set<string>()   // chaque bloc rendu une seule fois (anti-répétition)
-  let last = 0, key = 0, mt: RegExpExecArray | null
+  const used = new Set<string>()
+  let last = 0, key = 0, figN = 0, mt: RegExpExecArray | null
   const pushText = (txt: string) => {
     txt.split(/\n\s*\n+/).map(s => s.trim()).filter(Boolean).forEach(p =>
       nodes.push(<p key={`p${key++}`} className="al-serif" style={{ fontSize: 15.5, lineHeight: 1.68, color: '#3b414c', margin: '0 0 11px' }}>{p}</p>))
+  }
+  const placement = (args?: string) => {
+    const a = (args || '').toLowerCase()
+    const full = /\bfull\b/.test(a)
+    const side: 'left' | 'right' = /\bleft\b/.test(a) ? 'left' : /\bright\b/.test(a) ? 'right' : (figN % 2 === 0 ? 'right' : 'left')
+    return { full, side }
   }
   while ((mt = re.exec(body)) !== null) {
     pushText(body.slice(last, mt.index))
     last = mt.index + mt[0].length
     const kind = mt[1], ref = mt[2].trim(), tag = `${kind}:${ref.toUpperCase()}`
     if (used.has(tag)) continue
+    const { full, side } = placement(mt[3])
     if (kind === 'CHART') {
       const a = assetMap.get(ref.toUpperCase())
       const mac = macroMap.get(ref.toUpperCase())
-      if (a && (a.spark?.length || typeof a.price === 'number')) { nodes.push(<InlineChart key={`c${key++}`} title={a.sym} price={a.price} changePct={a.changePct} spark={a.spark} />); used.add(tag) }
-      else if (mac) { nodes.push(<InlineChart key={`c${key++}`} title={mac.label} price={mac.price} changePct={mac.changePct} spark={mac.spark} />); used.add(tag) }
+      const c = a && (a.spark?.length || typeof a.price === 'number')
+        ? { title: a.sym, price: a.price, changePct: a.changePct, spark: a.spark }
+        : mac ? { title: mac.label, price: mac.price, changePct: mac.changePct, spark: mac.spark } : null
+      if (c) {
+        used.add(tag); figN++
+        nodes.push(
+          <Figure key={`c${key++}`} side={side} full={full} caption={`${c.title} · 30-day price · source: Yahoo Finance`}>
+            <FigureChart title={c.title} price={c.price} changePct={c.changePct} spark={c.spark} full={full} />
+          </Figure>,
+        )
+      }
     } else if (kind === 'MARKET') {
       const m = marketMap.get(Number(ref))
-      if (m) { nodes.push(<div key={`m${key++}`} style={{ margin: '4px 0 12px' }}><MarketRow m={m} /></div>); used.add(tag) }
+      if (m) {
+        used.add(tag); figN++
+        nodes.push(
+          <Figure key={`m${key++}`} side={side} full={full} caption={`Polymarket · ${m.yesPct}% implied probability`}>
+            <FigureMarket m={m} />
+          </Figure>,
+        )
+      }
     }
   }
   pushText(body.slice(last))
+  nodes.push(<div key="clr" style={{ clear: 'both' }} />)
   return <>{nodes}</>
 }
 

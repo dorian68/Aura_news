@@ -134,4 +134,6 @@ body {
   .al-hero { grid-template-columns: 1fr !important; gap: 22px !important; }
   .al-mosaic { grid-template-columns: 1fr !important; }
   .al-mosaic-cell { grid-column: span 1 !important; }
+  /* Les figures éditoriales flottées repassent en pleine largeur sur mobile. */
+  .al-figure { float: none !important; width: 100% !important; max-width: 100% !important; margin: 14px 0 !important; }
 }
