@@ -158,6 +158,12 @@ function TradeInner() {
 }
 
 function Report({ report }: { report: TradeReport }) {
+  // Maps pour résoudre les blocs inline de l'article vers les vraies données.
+  const assetMap = new Map(report.assets.map(a => [a.sym.toUpperCase(), a]))
+  const macroMap = new Map((report.macro || []).map(m => [m.sym.toUpperCase(), { label: m.label, price: m.price, changePct: m.changePct, spark: m.spark }]))
+  const marketMap = new Map<number, TradeRelatedMarket>()
+  for (const m of report.relatedMarkets) if (typeof m.idx === 'number') marketMap.set(m.idx, m)
+
   return (
     <>
       <div style={{ marginBottom: 22 }}>
@@ -252,9 +258,7 @@ function Report({ report }: { report: TradeReport }) {
             {report.sections.map((sec, i) => (
               <div key={i}>
                 <h3 className="al-serif" style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-.01em', margin: '0 0 8px' }}>{sec.heading}</h3>
-                {sec.body.split(/\n\s*\n+/).filter(Boolean).map((para, j) => (
-                  <p key={j} className="al-serif" style={{ fontSize: 15.5, lineHeight: 1.68, color: '#3b414c', margin: '0 0 11px' }}>{para.trim()}</p>
-                ))}
+                <SectionBody body={sec.body} assetMap={assetMap} macroMap={macroMap} marketMap={marketMap} />
               </div>
             ))}
           </div>
@@ -380,6 +384,58 @@ function Sparkline({ data, w = 76, h = 22, color }: { data: number[]; w?: number
       <polyline points={pts} fill="none" stroke={c} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   )
+}
+
+// Bloc graphique inline (intégré dans le fil de l'article).
+function InlineChart({ title, price, changePct, spark }: { title: string; price?: number; changePct?: number; spark?: number[] }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, background: '#fff', border: '1px solid #e6e0d3', borderRadius: 11, padding: '11px 15px', margin: '6px 0 14px' }}>
+      <div>
+        <div className="al-mono" style={{ fontSize: 12, fontWeight: 700, color: '#16181d' }}>{title}</div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginTop: 2 }}>
+          {typeof price === 'number' && <span className="al-mono" style={{ fontSize: 13, fontWeight: 700 }}>{price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>}
+          {typeof changePct === 'number' && <span className="al-mono" style={{ fontSize: 11, fontWeight: 600, color: changePct >= 0 ? '#0f7d56' : '#c43d34' }}>{changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%</span>}
+          <span className="al-mono" style={{ fontSize: 8.5, color: '#a9a18f', textTransform: 'uppercase', letterSpacing: '.05em' }}>30d</span>
+        </div>
+      </div>
+      {spark && spark.length > 1 && <Sparkline data={spark} w={150} h={34} />}
+    </div>
+  )
+}
+
+// Rendu d'un corps de section : paragraphes + blocs inline [[CHART:x]] / [[MARKET:i]].
+// Un token qui ne résout pas vers une donnée réelle est simplement ignoré (jamais fabriqué).
+function SectionBody({ body, assetMap, macroMap, marketMap }: {
+  body: string
+  assetMap: Map<string, TradeAsset>
+  macroMap: Map<string, { label: string; price: number; changePct: number; spark?: number[] }>
+  marketMap: Map<number, TradeRelatedMarket>
+}) {
+  const re = /\[\[(CHART|MARKET):([^\]]+)\]\]/g
+  const nodes: React.ReactNode[] = []
+  const used = new Set<string>()   // chaque bloc rendu une seule fois (anti-répétition)
+  let last = 0, key = 0, mt: RegExpExecArray | null
+  const pushText = (txt: string) => {
+    txt.split(/\n\s*\n+/).map(s => s.trim()).filter(Boolean).forEach(p =>
+      nodes.push(<p key={`p${key++}`} className="al-serif" style={{ fontSize: 15.5, lineHeight: 1.68, color: '#3b414c', margin: '0 0 11px' }}>{p}</p>))
+  }
+  while ((mt = re.exec(body)) !== null) {
+    pushText(body.slice(last, mt.index))
+    last = mt.index + mt[0].length
+    const kind = mt[1], ref = mt[2].trim(), tag = `${kind}:${ref.toUpperCase()}`
+    if (used.has(tag)) continue
+    if (kind === 'CHART') {
+      const a = assetMap.get(ref.toUpperCase())
+      const mac = macroMap.get(ref.toUpperCase())
+      if (a && (a.spark?.length || typeof a.price === 'number')) { nodes.push(<InlineChart key={`c${key++}`} title={a.sym} price={a.price} changePct={a.changePct} spark={a.spark} />); used.add(tag) }
+      else if (mac) { nodes.push(<InlineChart key={`c${key++}`} title={mac.label} price={mac.price} changePct={mac.changePct} spark={mac.spark} />); used.add(tag) }
+    } else if (kind === 'MARKET') {
+      const m = marketMap.get(Number(ref))
+      if (m) { nodes.push(<div key={`m${key++}`} style={{ margin: '4px 0 12px' }}><MarketRow m={m} /></div>); used.add(tag) }
+    }
+  }
+  pushText(body.slice(last))
+  return <>{nodes}</>
 }
 
 function Loader({ status, progress }: { status: string; progress: number }) {
