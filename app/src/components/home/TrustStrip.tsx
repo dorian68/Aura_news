@@ -14,7 +14,7 @@ export function TrustStrip() {
         ))}
       </div>
       <div style={{ borderLeft: '1px solid #e6e0d3', paddingLeft: 24, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8 }}>
-        <p style={{ fontSize: 11.5, lineHeight: 1.5, color: '#8b93a1' }}>Research &amp; education only. Not investment advice. AI-generated — verify with independent sources. All figures in this prototype are fictional.</p>
+        <p style={{ fontSize: 11.5, lineHeight: 1.5, color: '#8b93a1' }}>Research &amp; education only. Not investment advice. AI-generated — verify with independent sources. Market probabilities are real Polymarket prices; asset views are AlphaLens&apos;s own.</p>
       </div>
     </section>
   )

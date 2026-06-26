@@ -292,23 +292,9 @@ function ReportCard({ report, onClick }: { report: GeneratedReport; onClick: () 
             {a.sym}
           </span>
         ))}
-
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 12 }}>
-          <span
-            className="al-link-hover"
-            style={{ fontSize: 11.5, fontWeight: 600, color: '#59606e', cursor: 'pointer' }}
-            onClick={(e) => { e.stopPropagation() }}
-          >
-            Export PDF
-          </span>
-          <span
-            className="al-link-hover"
-            style={{ fontSize: 11.5, fontWeight: 600, color: '#59606e', cursor: 'pointer' }}
-            onClick={(e) => { e.stopPropagation() }}
-          >
-            Share link
-          </span>
-        </div>
+        <span className="al-link-hover" style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 600, color: '#2469a6' }}>
+          Open →
+        </span>
       </div>
     </div>
   )

@@ -8,7 +8,7 @@ import { GoalAlert } from '@/components/worldcup/GoalAlert'
 
 export const metadata: Metadata = {
   title: 'AlphaLens Daily',
-  description: 'Turn headlines into implied probabilities, scenarios and market impact.',
+  description: 'For every story, see what the markets are already pricing — and what it means for your portfolio.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

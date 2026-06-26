@@ -3,16 +3,14 @@ import Link from 'next/link'
 import { useAppStore } from '@/lib/store'
 import { TokenMeter } from '@/components/ui/TokenMeter'
 
+// Seules de vraies destinations — pas d'onglets décoratifs morts (qui pointaient
+// tous vers '/'). Le cœur produit = Signals → Library ; Briefings = digest ;
+// World Cup = verticale parquée.
 const NAV_ITEMS = [
-  { label: 'Markets', href: '/' },
-  { label: 'Macro', href: '/' },
-  { label: 'FX', href: '/' },
-  { label: 'Commodities', href: '/' },
-  { label: 'Crypto', href: '/' },
-  { label: 'World Cup', href: '/warmup', dot: true, color: '#0f7d56' },
-  { label: 'Briefings', href: '/briefings', dot: true, color: '#5b50d8' },
   { label: 'Signals', href: '/trade', dot: true, color: '#2469a6' },
+  { label: 'Briefings', href: '/briefings', dot: true, color: '#5b50d8' },
   { label: 'Library', href: '/library', color: '#59606e' },
+  { label: 'World Cup', href: '/warmup', dot: true, color: '#0f7d56' },
 ]
 
 export function Masthead() {
@@ -28,7 +26,7 @@ export function Masthead() {
             {today} · Vol. 01 · No. 142
           </div>
           <span className="al-mono" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10.5, letterSpacing: '.12em', color: '#8a6d1e', background: '#fbf3da', border: '1px solid #f0e1b4', padding: '4px 9px', borderRadius: 999, textTransform: 'uppercase', fontWeight: 600 }}>
-            Demo data · fictional
+            Live data · research only
           </span>
         </div>
 
@@ -43,7 +41,7 @@ export function Masthead() {
 
         {/* Tagline */}
         <div className="al-serif" style={{ textAlign: 'center', fontStyle: 'italic', color: '#59606e', fontSize: 14.5, paddingBottom: 14 }}>
-          Turn headlines into implied probabilities, scenarios and market impact.
+          For every story, see what the markets are already pricing — and what it means for your portfolio.
         </div>
       </div>
 

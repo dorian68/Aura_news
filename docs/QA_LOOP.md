@@ -65,10 +65,18 @@ continuer).
 - 🟠 [UX] Parcours navigateur non exécuté en live (extension Claude-in-Chrome non
   connectée) — audit fait sur code+HTML. À refaire en live quand l'extension est
   dispo (interactions réelles, responsive).
-- 🟡 [UX] Library : contrôles morts « Export PDF » / « Share link » (onClick vide)
-  — soit les brancher, soit les retirer.
 - 🟡 [UX] Surface article legacy encore mise en avant dans la Library (au-dessus
   des Signals) alors qu'elle est hors-vision (à neutraliser/reléguer).
+- 🟡 [UX] Composants home non encore audités : `LiveSearch`, `FloatingChat`,
+  `MatchdayWidget` (World Cup sur la home = dilution du cœur ?). Responsive/mobile
+  non vérifié.
+- ✅ [UX/PRODUIT] Home Masthead : 5 onglets de nav morts (→'/') supprimés ;
+  badge mensonger « Demo data · fictional » → « Live data · research only » ;
+  contrôles morts « Export PDF/Share link » retirés (Library).
+- ✅ [PRODUIT] **Phase 0 du plan = repositionnement promesse** : tagline home +
+  meta description (`layout.tsx`) + disclaimer `TrustStrip` passés de l'ancienne
+  promesse (« implied probabilities ») à la vision (« ce que les marchés pricent
+  déjà → ton portefeuille » ; % = vrais prix Polymarket).
 - 🟡 [TECH] Library : persistance Save → relecture non encore vérifiée e2e (live).
 - ✅ [UX/PRODUIT] Library : **données fabriquées supprimées** — stats trompeuses
   (3× la même valeur) → 4 stats réelles distinctes ; fausses alertes en dur
@@ -173,3 +181,30 @@ continuer).
 - **DECIDE** : `ITERATING` (C3=6, C1=7 < 8). Prochain pas = poursuivre C3 (audit
   home/Feed + retirer/brancher les contrôles morts) puis C1 (persistance Library
   live + CLI market-data/Supabase).
+
+### Itération 4 — 2026-06-26 — Cohérence vision + nettoyage home (Phase 0)
+- **PLAN** : corriger le plus faible (C3=6) → audit Feed/home + contrôles morts.
+- **DO** :
+  - Vérifié que le Feed route bien vers `/trade?news=…` (Mosaic, NewsSections,
+    HeroSection) — flux cœur câblé. ✅
+  - **Masthead** : supprimé 5 onglets de nav morts (Markets/Macro/FX/Commodities/
+    Crypto, tous →'/') ; badge « Demo data · fictional » (faux : données réelles)
+    → « Live data · research only ».
+  - **Phase 0 (repositionnement promesse)** : tagline home + `layout.tsx`
+    (meta description) + `TrustStrip` alignés sur la vision (fin de « Turn
+    headlines into implied probabilities » ; mention « % = vrais prix Polymarket »).
+  - **Library** : retiré les contrôles morts « Export PDF » / « Share link ».
+  - Build ✅ ; rendu home vérifié via curl (nouvelle tagline + badge présents,
+    onglets morts absents).
+  - Paradigme backend-first : pas d'ajustement nécessaire ce tour (fixes copy/UI).
+- **VERIFY (1-10, honnête)** :
+  - **C1 Technique = 7/10** — inchangé ; persistance Library pas vérifiée en live,
+    pas de CLI market-data/Supabase.
+  - **C2 Métier = 9/10** — repositionnement vision complété, plus aucune copy
+    fabriquée/contradictoire sur le cœur. Reste : audit re-rank sur échantillon.
+  - **C3 UX = 7/10** — home cohérente et honnête, contrôles morts éliminés. Reste :
+    pas de vérif live navigateur (extension off), responsive/mobile non testé,
+    `LiveSearch`/`FloatingChat`/`MatchdayWidget` non audités.
+- **DECIDE** : `ITERATING` (C1=7, C3=7 < 8). Prochain pas = **C1** (vérifier
+  persistance Library via `store.ts` + créer CLI market-data/Supabase) puis finir
+  C3 (composants home restants + responsive).
