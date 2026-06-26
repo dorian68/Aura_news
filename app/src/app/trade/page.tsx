@@ -166,6 +166,24 @@ function Report({ report }: { report: TradeReport }) {
         <p className="al-serif" style={{ fontSize: 16.5, lineHeight: 1.5, color: '#3b414c', margin: 0 }}>{report.thesis}</p>
       </div>
 
+      {/* Market snapshot — niveaux macro réels (Finnhub) */}
+      {report.macro && report.macro.length > 0 && (
+        <div style={{ marginBottom: 22 }}>
+          <div className="al-mono" style={{ fontSize: 9.5, letterSpacing: '.1em', textTransform: 'uppercase', color: '#8b93a1', marginBottom: 6 }}>Market snapshot · live</div>
+          <div style={{ display: 'flex', overflowX: 'auto', border: '1px solid #e6e0d3', borderRadius: 12, background: '#fff' }}>
+            {report.macro.map((m, i) => (
+              <div key={m.sym} style={{ flex: '1 0 auto', minWidth: 110, padding: '10px 14px', borderLeft: i ? '1px solid #f0ece1' : 'none' }}>
+                <div className="al-mono" style={{ fontSize: 9.5, color: '#8b93a1', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 3, whiteSpace: 'nowrap' }}>{m.label}</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                  <span className="al-mono" style={{ fontSize: 14, fontWeight: 700 }}>{m.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                  <span className="al-mono" style={{ fontSize: 11, fontWeight: 600, color: m.changePct >= 0 ? '#0f7d56' : '#c43d34' }}>{m.changePct >= 0 ? '+' : ''}{m.changePct.toFixed(2)}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Key takeaways — GS Briefings style */}
       {report.keyTakeaways && report.keyTakeaways.length > 0 && (
         <div style={{ background: '#fff', border: '1px solid #e6e0d3', borderRadius: 12, padding: '14px 18px', marginBottom: 24 }}>
@@ -291,7 +309,12 @@ function AssetCard({ a }: { a: TradeAsset }) {
         <span className="al-mono" style={{ fontSize: 14, fontWeight: 700 }}>{a.sym}</span>
         <span style={{ color: d.c, fontWeight: 700, fontSize: 13 }}>{d.a}</span>
         {a.inWatchlist && <span className="al-mono" style={{ fontSize: 8.5, color: '#5b50d8', border: '1px solid #dcd9f6', borderRadius: 5, padding: '1px 5px' }}>WATCHLIST</span>}
-        {typeof a.changePct === 'number' && <span className="al-mono" style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: a.changePct >= 0 ? '#0f7d56' : '#c43d34' }}>{a.changePct >= 0 ? '+' : ''}{a.changePct.toFixed(2)}%</span>}
+        {(typeof a.price === 'number' || typeof a.changePct === 'number') && (
+          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            {typeof a.price === 'number' && <span className="al-mono" style={{ fontSize: 11.5, fontWeight: 700, color: '#16181d' }}>{a.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>}
+            {typeof a.changePct === 'number' && <span className="al-mono" style={{ fontSize: 11, fontWeight: 600, color: a.changePct >= 0 ? '#0f7d56' : '#c43d34' }}>{a.changePct >= 0 ? '+' : ''}{a.changePct.toFixed(2)}%</span>}
+          </span>
+        )}
       </div>
       <div className="al-mono" style={{ fontSize: 9.5, color: '#a9a18f', marginBottom: 5 }}>{a.horizon}</div>
       <p style={{ fontSize: 12.5, lineHeight: 1.45, color: '#59606e', margin: 0 }}>{a.reason}</p>

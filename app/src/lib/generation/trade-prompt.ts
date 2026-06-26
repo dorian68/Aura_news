@@ -21,9 +21,14 @@ export interface TradeAsset {
   horizon: string
   reason: string
   inWatchlist?: boolean
-  // attached server-side when the asset is in the watchlist and we have a quote:
+  // attachés server-side à l'hydratation (données réelles, sinon absents) :
+  price?: number
   changePct?: number
+  spark?: number[]        // série historique réelle pour la sparkline (si dispo)
 }
+
+// Niveau macro réel (ETF proxy) affiché en tête d'article.
+export interface MacroItem { label: string; sym: string; price: number; changePct: number; spark?: number[] }
 
 export interface TradeScenario {
   label: string
@@ -55,6 +60,7 @@ export interface TradeReport {
   watch: string[]
   finalTake: string
   createdAt: string
+  macro?: MacroItem[]     // contexte macro réel, attaché à l'hydratation (live)
 }
 
 export interface WatchItem { sym: string; changePct?: number }

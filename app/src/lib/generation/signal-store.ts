@@ -7,9 +7,9 @@
 //     window and fanned out to everyone, so freshness scales independently.
 
 import { getDb } from '../supabase'
-import { fetchQuotes } from '../market-data'
+import { fetchAssetQuotes, MACRO_TICKERS, type AssetQuote } from '../market-data'
 import { generateSignal } from './signal-engine'
-import type { TradeReport } from './trade-prompt'
+import type { TradeReport, MacroItem } from './trade-prompt'
 import type { NewsItem } from '../types'
 
 // ── Frozen store ──
@@ -48,7 +48,7 @@ export async function getOrCreateSignal(item: NewsItem): Promise<SignalFetch | n
 const GAMMA = 'https://gamma-api.polymarket.com'
 const TTL = 60_000
 const priceCache = new Map<string, { v: number; ts: number }>()
-const quoteCache = new Map<string, { v: number; ts: number }>()
+const quoteCache = new Map<string, { v: AssetQuote; ts: number }>()
 
 async function getMarketPrices(ids: string[]): Promise<Map<string, number>> {
   const out = new Map<string, number>()
@@ -76,21 +76,19 @@ async function getMarketPrices(ids: string[]): Promise<Map<string, number>> {
   return out
 }
 
-async function getQuoteMoves(syms: string[]): Promise<Map<string, number>> {
-  const out = new Map<string, number>()
+// Quotes réelles (prix + % jour) par symbole, cache court partagé.
+async function getAssetQuotes(syms: string[]): Promise<Map<string, AssetQuote>> {
+  const out = new Map<string, AssetQuote>()
   const now = Date.now()
   const stale: string[] = []
-  for (const s of syms) {
+  for (const s of syms.map(x => x.toUpperCase())) {
     const c = quoteCache.get(s)
     if (c && now - c.ts < TTL) out.set(s, c.v)
     else stale.push(s)
   }
-  const key = process.env.TWELVE_DATA_API_KEY || ''
-  if (stale.length && key) {
-    try {
-      const quotes = await fetchQuotes(stale, key)
-      for (const q of quotes) { quoteCache.set(q.sym, { v: q.changePct, ts: now }); out.set(q.sym, q.changePct) }
-    } catch { /* keep frozen value */ }
+  if (stale.length) {
+    const fresh = await fetchAssetQuotes(stale)
+    for (const [s, q] of fresh) { quoteCache.set(s, { v: q, ts: now }); out.set(s, q) }
   }
   return out
 }
@@ -105,11 +103,25 @@ export async function hydrateSignal(frozen: TradeReport, watchlist: string[] = [
     ...frozen.scenarios.map(s => s.marketId),
   ].filter((x): x is string => !!x)
 
-  const [prices, moves] = await Promise.all([
+  const wl = new Set(watchlist.map(s => s.toUpperCase()))
+  const quoteSyms = [...new Set([
+    ...frozen.assets.map(a => a.sym),
+    ...watchlist,
+    ...MACRO_TICKERS.map(m => m.sym),
+  ].map(s => s.toUpperCase()))]
+
+  const [prices, quotes] = await Promise.all([
     getMarketPrices([...new Set(ids)]),
-    getQuoteMoves(watchlist),
+    getAssetQuotes(quoteSyms),
   ])
-  const wl = new Set(watchlist)
+
+  // Bandeau macro : niveaux réels uniquement (un proxy sans donnée est omis).
+  const macro: MacroItem[] = MACRO_TICKERS
+    .map(m => {
+      const q = quotes.get(m.sym.toUpperCase())
+      return q ? { label: m.label, sym: m.sym, price: q.price, changePct: q.changePct } : null
+    })
+    .filter((x): x is MacroItem => x !== null)
 
   return {
     ...frozen,
@@ -117,10 +129,15 @@ export async function hydrateSignal(frozen: TradeReport, watchlist: string[] = [
       m.marketId && prices.has(m.marketId) ? { ...m, yesPct: prices.get(m.marketId)! } : m),
     scenarios: frozen.scenarios.map(s =>
       s.marketId && prices.has(s.marketId) ? { ...s, prob: prices.get(s.marketId)! } : s),
-    assets: frozen.assets.map(a => ({
-      ...a,
-      inWatchlist: wl.has(a.sym),
-      changePct: moves.has(a.sym) ? moves.get(a.sym) : a.changePct,
-    })),
+    assets: frozen.assets.map(a => {
+      const q = quotes.get(a.sym.toUpperCase())
+      return {
+        ...a,
+        inWatchlist: wl.has(a.sym.toUpperCase()),
+        price: q ? q.price : a.price,
+        changePct: q ? q.changePct : a.changePct,
+      }
+    }),
+    macro,
   }
 }

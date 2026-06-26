@@ -95,3 +95,72 @@ export const DEFAULT_TICKERS = [
 ]
 
 export const CRYPTO_IDS = ['bitcoin', 'ethereum']
+
+// ── Quotes via Finnhub (gratuit, généreux) — source primaire des niveaux/moves ──
+// Données RÉELLES uniquement. En cas d'échec : on n'invente rien (valeur absente).
+
+// Mapping minimal ticker → id CoinGecko pour les actifs crypto courants.
+const CRYPTO_MAP: Record<string, string> = {
+  BTC: 'bitcoin', 'BTC/USD': 'bitcoin', 'BTC-USD': 'bitcoin',
+  ETH: 'ethereum', 'ETH/USD': 'ethereum', 'ETH-USD': 'ethereum',
+  SOL: 'solana', XRP: 'ripple', DOGE: 'dogecoin', ADA: 'cardano',
+}
+
+export interface AssetQuote { sym: string; price: number; changePct: number }
+
+async function finnhubQuote(sym: string, key: string): Promise<AssetQuote | null> {
+  try {
+    const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${key}`, { cache: 'no-store' })
+    if (!res.ok) return null
+    const q = await res.json()
+    if (typeof q.c !== 'number' || q.c === 0) return null   // 0 = symbole inconnu
+    return { sym, price: q.c, changePct: typeof q.dp === 'number' ? q.dp : 0 }
+  } catch { return null }
+}
+
+/**
+ * Quotes RÉELLES pour une liste de symboles. Stocks/ETF via Finnhub, crypto via
+ * CoinGecko. Retourne une Map ; un symbole sans donnée est simplement absent
+ * (jamais de valeur fabriquée).
+ */
+export async function fetchAssetQuotes(symbols: string[]): Promise<Map<string, AssetQuote>> {
+  const out = new Map<string, AssetQuote>()
+  const uniq = [...new Set(symbols.map(s => s.trim().toUpperCase()).filter(Boolean))]
+  if (!uniq.length) return out
+
+  const cryptoIds: { sym: string; id: string }[] = []
+  const stocks: string[] = []
+  for (const s of uniq) (CRYPTO_MAP[s] ? cryptoIds.push({ sym: s, id: CRYPTO_MAP[s] }) : stocks.push(s))
+
+  const key = process.env.FINNHUB_API_KEY || ''
+  await Promise.all([
+    // Stocks/ETF — Finnhub (parallèle ; free tier ~60 req/min)
+    ...(key ? stocks.map(async s => { const q = await finnhubQuote(s, key); if (q) out.set(s, q) }) : []),
+    // Crypto — CoinGecko (un seul appel)
+    (async () => {
+      if (!cryptoIds.length) return
+      try {
+        const ids = [...new Set(cryptoIds.map(c => c.id))].join(',')
+        const r = await fetch(`${COINGECKO_BASE}/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`, { cache: 'no-store' })
+        if (!r.ok) return
+        const d = await r.json()
+        for (const c of cryptoIds) {
+          const row = d[c.id]
+          if (row?.usd) out.set(c.sym, { sym: c.sym, price: row.usd, changePct: row.usd_24h_change ?? 0 })
+        }
+      } catch { /* rien */ }
+    })(),
+  ])
+  return out
+}
+
+// Bandeau macro : libellés lisibles → symboles réels (ETF proxies, données Finnhub).
+export const MACRO_TICKERS: { label: string; sym: string }[] = [
+  { label: 'S&P 500', sym: 'SPY' },
+  { label: 'Nasdaq 100', sym: 'QQQ' },
+  { label: 'US 10Y (TLT)', sym: 'TLT' },
+  { label: 'Gold', sym: 'GLD' },
+  { label: 'Oil (WTI)', sym: 'USO' },
+  { label: 'US Dollar', sym: 'UUP' },
+  { label: 'Volatility', sym: 'VIXY' },
+]
