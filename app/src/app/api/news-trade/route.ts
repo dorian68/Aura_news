@@ -20,17 +20,20 @@ export async function POST(req: NextRequest) {
           controller.close(); return
         }
 
-        send('status', { step: 'Loading the story…', pct: 12 })
+        send('status', { step: 'Loading the story…', pct: 6 })
         const news = await fetchNews()
         const item = news.find(n => n.id === newsId) || news[0]
         if (!item) { send('error', { message: 'No news available.' }); controller.close(); return }
 
-        send('status', { step: 'Pricing the signal…', pct: 50 })
-        const sig = await getOrCreateSignal(item)
+        // Streaming : la narration réelle et l'article token-par-token passent par SSE.
+        const sig = await getOrCreateSignal(item, {
+          onStatus: s => send('status', s),
+          onArticleDelta: delta => send('article_delta', { delta }),
+        })
         if (!sig) { send('error', { message: 'Could not generate the signal (transient error). Try again.' }); controller.close(); return }
         if (sig.usage) send('usage', sig.usage)   // tokens only when actually generated
 
-        send('status', { step: 'Refreshing live prices…', pct: 82 })
+        send('status', { step: 'Refreshing live prices…', pct: 88 })
         const report = await hydrateSignal(sig.report, watchlist)
 
         send('status', { step: 'Ready', pct: 100 })

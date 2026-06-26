@@ -136,3 +136,87 @@ Only include relatedMarkets that are genuinely connected (empty array if none). 
 
 CRITICAL: "sections" must read like a real Goldman Sachs Research briefing — 5 to 6 sections, each section body 300-450 words across 3-4 paragraphs, for a total of AT LEAST 1500 words (aim 1800-2500). This long-form article is the centerpiece of the report; a short or summarized version is a failed response. Write it in full.`
 }
+
+// ════════ Génération en 2 phases (expérience streaming) ════════
+// Phase A : données structurées + PLAN de l'article (JSON, rapide).
+// Phase B : rédaction de l'article en streaming (texte).
+
+export interface SectionPlan { heading: string; focus: string }
+
+export function buildPlanSystemPrompt(): string {
+  return `You are AlphaLens, connecting a news story to the real markets and assets a trader can act on — honestly.
+NON-NEGOTIABLE: never invent a probability/%/figure (only the provided market % are allowed); never introduce a ticker that is not in your "assets"; select related markets from the provided candidates BY INDEX; scenarios stay qualitative unless a provided market literally covers them; always map at least 2-3 affected liquid assets (tickers/ETFs, e.g. USO/XLE/TLT/GLD); keyTakeaways must be actionable and specific; information & education only, no buy/sell.
+You output the STRUCTURED data plus a sectionPlan — the article prose is written in a later step. Return ONLY valid JSON.`
+}
+
+export function buildPlanUserPrompt(
+  news: { title: string; summary?: string; source: string; category?: string },
+  candidates: MarketCandidate[],
+  watchlist: WatchItem[],
+): string {
+  const mkts = candidates.length
+    ? candidates.map((c, i) => `[${i}] (${c.market.yesPct}% yes · $${Math.round(c.market.volume).toLocaleString()} vol) ${c.market.question}`).join('\n')
+    : '(none retrieved)'
+  const wl = watchlist.length
+    ? watchlist.map(w => `${w.sym}${w.changePct != null ? ` (${w.changePct >= 0 ? '+' : ''}${w.changePct.toFixed(2)}% today)` : ''}`).join(', ')
+    : '(empty)'
+  return `NEWS:
+Title: ${news.title}
+Source: ${news.source}${news.category ? ` · ${news.category}` : ''}
+Summary: ${news.summary ?? ''}
+
+CANDIDATE PREDICTION MARKETS (real, from Polymarket — reference their % only, never invent):
+${mkts}
+
+USER WATCHLIST: ${wl}
+
+Return JSON:
+{
+  "headline": "string — punchy, not the news title",
+  "thesis": "string — 1-2 sentences: why this matters for positioning",
+  "keyTakeaways": ["string — 3-5 actionable bullets"],
+  "relatedMarkets": [{"idx": number, "relevance": "direct|related|tangential", "link": "string"}],
+  "assets": [{"sym": "string", "direction": "up|down|neutral", "horizon": "string", "reason": "string", "inWatchlist": boolean}],
+  "portfolioImpact": "string — one line on net effect on the watchlist",
+  "scenarios": [{"label": "string", "impact": "string", "marketIdx": number /* only if a provided market literally is this outcome */}],
+  "pricedIn": ["string"],
+  "notPricedIn": ["string"],
+  "watch": ["string"],
+  "finalTake": "string — 1-2 education-framed sentences",
+  "sectionPlan": [{"heading": "string", "focus": "string — one line angle"}]
+}
+
+Provide 5-6 sectionPlan items collectively covering: the core mechanism, context/history, the bull case, the bear case, second-order/cross-asset effects, and the medium-term outlook + what would break the thesis. Always map at least 2-3 liquid assets.`
+}
+
+export function buildArticleSystemPrompt(): string {
+  return `You are AlphaLens writing a long-form market briefing in the style of Goldman Sachs Research. Authoritative, analytical, education-framed (never "buy/sell").
+GROUNDING: never invent a number — the ONLY figures allowed are the provided market %; never use a ticker outside the provided assets; stay qualitative otherwise.
+FORMAT: write each section as a line "## <heading>", then a blank line, then the body of 3-4 paragraphs (300-450 words each), paragraphs separated by blank lines. The whole article must be AT LEAST 1500 words.
+INLINE BLOCKS: within the bodies, place 2-4 blocks, each ALONE on its own line right after the paragraph it illustrates: [[CHART:TICKER]] (a ticker from the provided assets) or [[MARKET:i]] (a provided market index). Use each distinct block at most once, vary them, spread across sections. Never invent a ticker or index.
+Output ONLY the article (the ## sections), nothing else.`
+}
+
+export function buildArticleUserPrompt(
+  news: { title: string; summary?: string; source: string },
+  markets: { idx: number; question: string; yesPct: number }[],
+  assets: { sym: string; direction: string; reason: string }[],
+  plan: SectionPlan[],
+): string {
+  const mkts = markets.length ? markets.map(m => `[${m.idx}] (${m.yesPct}% yes) ${m.question}`).join('\n') : '(none)'
+  const as = assets.length ? assets.map(a => `${a.sym} (${a.direction}) — ${a.reason}`).join('\n') : '(none)'
+  const pl = plan.map((p, i) => `${i + 1}. ${p.heading} — ${p.focus}`).join('\n')
+  return `NEWS: ${news.title} (${news.source})
+${news.summary ?? ''}
+
+PROVIDED MARKETS (cite % only; reference inline with [[MARKET:idx]]):
+${mkts}
+
+PROVIDED ASSETS (reference inline with [[CHART:SYM]]):
+${as}
+
+SECTION PLAN (write each as "## heading", in order):
+${pl}
+
+Write the full briefing now — at least 1500 words, following the plan headings, with inline blocks placed contextually.`
+}

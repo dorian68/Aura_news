@@ -8,7 +8,7 @@
 
 import { getDb } from '../supabase'
 import { fetchAssetQuotes, fetchSparklines, MACRO_TICKERS, type AssetQuote } from '../market-data'
-import { generateSignal } from './signal-engine'
+import { generateSignal, generateSignalStreaming, type StreamHandlers } from './signal-engine'
 import type { TradeReport, MacroItem } from './trade-prompt'
 import type { NewsItem } from '../types'
 
@@ -33,11 +33,15 @@ async function storeSignal(report: TradeReport): Promise<void> {
 
 export interface SignalFetch { report: TradeReport; generated: boolean; usage?: { input: number; output: number } }
 
-/** Stored frozen signal, or generate-once-and-store. Watchlist-agnostic (shared). */
-export async function getOrCreateSignal(item: NewsItem): Promise<SignalFetch | null> {
+/** Stored frozen signal, or generate-once-and-store. Watchlist-agnostic (shared).
+ *  Si `handlers` est fourni et qu'il faut générer, on utilise le moteur STREAMING
+ *  (narration + article token-par-token). En cache : retour instantané, pas de stream. */
+export async function getOrCreateSignal(item: NewsItem, handlers?: StreamHandlers): Promise<SignalFetch | null> {
   const stored = await getStoredSignal(item.id)
   if (stored) return { report: stored, generated: false }
-  const res = await generateSignal(item, [])
+  const res = handlers
+    ? await generateSignalStreaming(item, [], handlers)
+    : await generateSignal(item, [])
   if (!res) return null
   await storeSignal(res.report)
   return { report: res.report, generated: true, usage: res.usage }

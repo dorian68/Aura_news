@@ -30,12 +30,14 @@ function TradeInner() {
   const [progress, setProgress] = useState(8)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(true)
+  const [steps, setSteps] = useState<string[]>([])
+  const [streamText, setStreamText] = useState('')
   const [tickerInput, setTickerInput] = useState('')
   const init = useRef(false)
   const isSaved = !!report && savedTradeReports.some(r => r.id === report.id)
 
   const generate = useCallback(async (newsId: string) => {
-    setBusy(true); setReport(null); setError(null); setProgress(8); setStatus('Loading the story…')
+    setBusy(true); setReport(null); setError(null); setProgress(6); setStatus('Loading the story…'); setSteps([]); setStreamText('')
     try {
       const res = await fetch('/api/news-trade', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -55,7 +57,8 @@ function TradeInner() {
           else if (line.startsWith('data: ') && ev) {
             try {
               const d = JSON.parse(line.slice(6))
-              if (ev === 'status') { setProgress(d.pct); setStatus(d.step) }
+              if (ev === 'status') { setProgress(d.pct); setStatus(d.step); setSteps(prev => prev[prev.length - 1] === d.step ? prev : [...prev, d.step]) }
+              else if (ev === 'article_delta') { setStreamText(t => t + (d.delta || '')) }
               else if (ev === 'usage') addTokenUsage(d.input || 0, d.output || 0)
               else if (ev === 'complete') { setReport(d.report); setBusy(false) }
               else if (ev === 'error') { setError(d.message); setBusy(false) }
@@ -148,7 +151,7 @@ function TradeInner() {
         {error ? (
           <div style={{ background: '#fde8e8', border: '1px solid #f3c8c8', borderRadius: 14, padding: 20, textAlign: 'center', color: '#c43d34' }}>{error}</div>
         ) : busy || !report ? (
-          <Loader status={status} progress={progress} />
+          <Loader status={status} progress={progress} steps={steps} streamText={streamText} />
         ) : (
           <Report report={report} />
         )}
@@ -438,17 +441,52 @@ function SectionBody({ body, assetMap, macroMap, marketMap }: {
   return <>{nodes}</>
 }
 
-function Loader({ status, progress }: { status: string; progress: number }) {
+function Loader({ status, progress, steps = [], streamText = '' }: { status: string; progress: number; steps?: string[]; streamText?: string }) {
   return (
-    <div style={{ maxWidth: 460, margin: '40px auto', textAlign: 'center' }}>
-      <div style={{ position: 'relative', width: 54, height: 54, margin: '0 auto 18px' }}>
-        <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'conic-gradient(from 0deg,#5b50d8,#2469a6,#2f9488,#5b50d8)', animation: 'al-orb 2s linear infinite' }} />
-        <div style={{ position: 'absolute', inset: 5, borderRadius: '50%', background: '#efeae0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, color: '#5b50d8' }}>✦</div>
+    <div style={{ maxWidth: 720, margin: '28px auto 0' }}>
+      {/* Orbe + barre de progression */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 16 }}>
+        <div style={{ position: 'relative', width: 38, height: 38, flexShrink: 0 }}>
+          <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'conic-gradient(from 0deg,#5b50d8,#2469a6,#2f9488,#5b50d8)', animation: 'al-orb 2s linear infinite' }} />
+          <div style={{ position: 'absolute', inset: 4, borderRadius: '50%', background: '#efeae0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, color: '#5b50d8' }}>✦</div>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div className="al-mono" style={{ fontSize: 12, color: '#3b414c', marginBottom: 6 }}>{status}</div>
+          <div style={{ background: '#dcd5c6', borderRadius: 99, height: 5, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg,#5b50d8,#2469a6)', borderRadius: 99, transition: 'width .5s ease' }} />
+          </div>
+        </div>
       </div>
-      <div style={{ background: '#dcd5c6', borderRadius: 99, height: 5, overflow: 'hidden', marginBottom: 11 }}>
-        <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg,#5b50d8,#2469a6)', borderRadius: 99, transition: 'width .5s ease' }} />
-      </div>
-      <p className="al-mono" style={{ fontSize: 12, color: '#8b93a1' }}>{status}</p>
+
+      {/* Narration réelle de l'agent — étapes qui se cochent */}
+      {steps.length > 0 && (
+        <div style={{ background: '#fff', border: '1px solid #e6e0d3', borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
+          {steps.map((s, i) => {
+            const done = i < steps.length - 1
+            return (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '3px 0', opacity: done ? 0.65 : 1 }}>
+                <span style={{ fontSize: 12, color: done ? '#0f7d56' : '#5b50d8', width: 14, textAlign: 'center' }}>{done ? '✓' : '◆'}</span>
+                <span className="al-mono" style={{ fontSize: 12, color: done ? '#59606e' : '#16181d', fontWeight: done ? 400 : 600 }}>{s}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Le briefing s'écrit en direct */}
+      {streamText && (
+        <div style={{ background: '#fff', border: '1px solid #e6e0d3', borderRadius: 12, padding: '16px 20px' }}>
+          <div className="al-mono" style={{ fontSize: 9.5, letterSpacing: '.1em', textTransform: 'uppercase', color: '#5b50d8', marginBottom: 10 }}>Writing the briefing…</div>
+          {streamText.split(/\n\s*\n+/).filter(Boolean).map((para, i) => {
+            const head = para.replace(/^##\s+/, '')
+            const isHead = /^##\s+/.test(para)
+            return isHead
+              ? <h3 key={i} className="al-serif" style={{ fontSize: 18, fontWeight: 700, margin: '12px 0 6px' }}>{head}</h3>
+              : <p key={i} className="al-serif" style={{ fontSize: 15, lineHeight: 1.6, color: '#3b414c', margin: '0 0 9px' }}>{para.replace(/\[\[(CHART|MARKET):[^\]]+\]\]/g, '').trim()}</p>
+          })}
+          <span style={{ display: 'inline-block', width: 7, height: 15, background: '#5b50d8', animation: 'al-pulse 1s steps(2) infinite', verticalAlign: 'middle' }} />
+        </div>
+      )}
     </div>
   )
 }
