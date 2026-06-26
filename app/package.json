@@ -11,7 +11,8 @@
     "debug:news": "node --env-file=.env.local scripts/debug-news.mjs",
     "debug:signal": "node --env-file=.env.local scripts/debug-signal-flow.mjs",
     "debug:market-data": "node --env-file=.env.local scripts/debug-market-data.mjs",
-    "debug:supabase": "node --env-file=.env.local scripts/debug-supabase.mjs"
+    "debug:supabase": "node --env-file=.env.local scripts/debug-supabase.mjs",
+    "debug:quality": "node --env-file=.env.local scripts/debug-article-quality.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.17",
