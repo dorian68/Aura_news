@@ -154,11 +154,59 @@ export async function ingestArticles(): Promise<{ inserted: number; configured: 
   return { inserted, configured: true }
 }
 
+// ── Garantie « toujours frais » (stale-while-revalidate) ──
+// On ne sert jamais du périmé, sans bloquer l'utilisateur :
+//  • corpus récent → servi immédiatement ; s'il dépasse SOFT_TTL, rafraîchi en
+//    arrière-plan (le prochain accès aura du plus frais) ;
+//  • corpus trop vieux (> HARD_TTL) ou vide → on bloque, ré-ingère, puis sert.
+// La fraîcheur se mesure au temps depuis la dernière ingestion ; au démarrage à
+// froid, on accepte aussi un corpus dont l'article le plus récent est < HARD_TTL.
+const SOFT_TTL_MS = 10 * 60 * 1000    // au-delà : rafraîchissement en arrière-plan
+const HARD_TTL_MS = 45 * 60 * 1000    // au-delà : on ne sert pas sans rafraîchir d'abord
+const RETRY_MS = 60 * 1000            // ingestion en échec : réessai au plus 1×/min
+let refreshing: Promise<unknown> | null = null
+let lastIngestAt = 0
+let lastAttemptAt = 0
+
+function newestAgeMs(items: NewsItem[]): number {
+  const iso = items[0]?.publishedAt
+  if (!iso) return Infinity
+  const t = new Date(iso).getTime()
+  return Date.now() - (Number.isNaN(t) ? 0 : t)
+}
+
+/** Lance une ré-ingestion live (single-flight + throttle). Ne jette jamais. */
+function startRefresh(): void {
+  if (refreshing || Date.now() - lastAttemptAt < RETRY_MS) return
+  lastAttemptAt = Date.now()
+  refreshing = ingestArticles()
+    .then(r => { if (r && r.configured && r.inserted > 0) lastIngestAt = Date.now() })
+    .catch(() => {})
+    .finally(() => { refreshing = null })
+}
+
 /**
- * Public read API. Serves the stored corpus (the stock); falls back to the live
- * flow before the first ingest or when the DB isn't configured.
+ * Public read API — TOUJOURS frais, jamais bloquant en régime normal, sans cron.
+ * Sans DB configurée : live direct (no-store) = frais par construction.
  */
 export async function fetchNews(): Promise<NewsItem[]> {
+  const now = Date.now()
   const stored = await getArticles()
-  return stored.length ? stored : fetchLiveNews()
+
+  // Servable immédiatement si récent (par ingestion OU par âge d'article au cold start).
+  const servable = stored.length > 0 && (now - lastIngestAt < HARD_TTL_MS || newestAgeMs(stored) < HARD_TTL_MS)
+  if (servable) {
+    if (now - lastIngestAt >= SOFT_TTL_MS) startRefresh()   // rafraîchit en arrière-plan
+    return stored
+  }
+
+  // Corpus périmé ou vide → on rafraîchit et on attend (cas rare).
+  startRefresh()
+  if (refreshing) await refreshing
+  const refreshed = await getArticles()
+  if (refreshed.length) return refreshed
+
+  // DB absente / ingestion sans effet → live direct, toujours frais.
+  const live = await fetchLiveNews()
+  return live.length ? live : stored
 }
