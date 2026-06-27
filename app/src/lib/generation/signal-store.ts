@@ -7,9 +7,9 @@
 //     window and fanned out to everyone, so freshness scales independently.
 
 import { getDb } from '../supabase'
-import { fetchAssetQuotes, fetchSparklines, MACRO_TICKERS, type AssetQuote } from '../market-data'
+import { fetchAssetQuotes, fetchSparklines, fetchNormalizedSeries, fetchFundamentals, MACRO_TICKERS, type AssetQuote, type SeriesPoint, type Fundamental } from '../market-data'
 import { generateSignal, generateSignalStreaming, type StreamHandlers } from './signal-engine'
-import type { TradeReport, MacroItem } from './trade-prompt'
+import type { TradeReport, MacroItem, Exhibit } from './trade-prompt'
 import type { NewsItem } from '../types'
 
 // ── Frozen store ──
@@ -104,6 +104,50 @@ async function getSparklines(syms: string[]): Promise<Map<string, number[]>> {
   return out
 }
 
+// Caches exhibits (données plus lourdes, journalières) — TTL long.
+const EXH_TTL = 30 * 60 * 1000
+const seriesCache = new Map<string, { v: number[]; ts: number }>()
+const fundCache = new Map<string, { v: Fundamental | null; ts: number }>()
+
+async function getSeries(tickers: string[]): Promise<SeriesPoint[]> {
+  const now = Date.now()
+  const out = new Map<string, number[]>()
+  const stale: string[] = []
+  for (const t of tickers.map(x => x.toUpperCase())) {
+    const c = seriesCache.get(t)
+    if (c && now - c.ts < EXH_TTL) { if (c.v.length) out.set(t, c.v) } else stale.push(t)
+  }
+  if (stale.length) {
+    const fresh = await fetchNormalizedSeries(stale)
+    for (const t of stale) { const s = fresh.find(x => x.ticker === t); seriesCache.set(t, { v: s?.points ?? [], ts: now }); if (s) out.set(t, s.points) }
+  }
+  return tickers.map(t => t.toUpperCase()).filter(t => out.has(t)).map(t => ({ ticker: t, points: out.get(t)! }))
+}
+
+async function getFundamentals(tickers: string[]): Promise<Fundamental[]> {
+  const now = Date.now()
+  const out = new Map<string, Fundamental>()
+  const stale: string[] = []
+  for (const t of tickers.map(x => x.toUpperCase())) {
+    const c = fundCache.get(t)
+    if (c && now - c.ts < EXH_TTL) { if (c.v) out.set(t, c.v) } else stale.push(t)
+  }
+  if (stale.length) {
+    const fresh = await fetchFundamentals(stale)
+    for (const t of stale) { const f = fresh.find(x => x.ticker === t) ?? null; fundCache.set(t, { v: f, ts: now }); if (f) out.set(t, f) }
+  }
+  return tickers.map(t => t.toUpperCase()).filter(t => out.has(t)).map(t => out.get(t)!)
+}
+
+// Attache les données réelles à chaque exhibit (séries / fondamentaux).
+async function enrichExhibits(exhibits: Exhibit[]): Promise<Exhibit[]> {
+  return Promise.all(exhibits.map(async e => {
+    if (e.type === 'linechart') return { ...e, series: await getSeries(e.tickers) }
+    if (e.type === 'metricgrid' || e.type === 'barchart') return { ...e, fundamentals: await getFundamentals(e.tickers) }
+    return e
+  }))
+}
+
 // Quotes réelles (prix + % jour) par symbole, cache court partagé.
 async function getAssetQuotes(syms: string[]): Promise<Map<string, AssetQuote>> {
   const out = new Map<string, AssetQuote>()
@@ -138,10 +182,11 @@ export async function hydrateSignal(frozen: TradeReport, watchlist: string[] = [
     ...MACRO_TICKERS.map(m => m.sym),
   ].map(s => s.toUpperCase()))]
 
-  const [prices, quotes, sparks] = await Promise.all([
+  const [prices, quotes, sparks, exhibits] = await Promise.all([
     getMarketPrices([...new Set(ids)]),
     getAssetQuotes(quoteSyms),
     getSparklines(quoteSyms),
+    enrichExhibits(frozen.exhibits ?? []),
   ])
 
   // Bandeau macro : niveaux réels uniquement (un proxy sans donnée est omis).
@@ -168,5 +213,6 @@ export async function hydrateSignal(frozen: TradeReport, watchlist: string[] = [
       }
     }),
     macro,
+    exhibits,
   }
 }

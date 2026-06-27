@@ -5,7 +5,8 @@ import { useSearchParams } from 'next/navigation'
 import { useAppStore } from '@/lib/store'
 import { TokenMeter } from '@/components/ui/TokenMeter'
 import type { NewsItem } from '@/lib/types'
-import type { TradeReport, TradeRelatedMarket, TradeAsset, TradeScenario } from '@/lib/generation/trade-prompt'
+import type { TradeReport, TradeRelatedMarket, TradeAsset, TradeScenario, Exhibit } from '@/lib/generation/trade-prompt'
+import { ExhibitBlock } from '@/components/Exhibits'
 
 const DIR: Record<string, { c: string; a: string }> = {
   up: { c: '#0f7d56', a: '▲' }, down: { c: '#c43d34', a: '▼' }, neutral: { c: '#8b93a1', a: '→' },
@@ -166,6 +167,8 @@ function Report({ report }: { report: TradeReport }) {
   const macroMap = new Map((report.macro || []).map(m => [m.sym.toUpperCase(), { label: m.label, price: m.price, changePct: m.changePct, spark: m.spark }]))
   const marketMap = new Map<number, TradeRelatedMarket>()
   for (const m of report.relatedMarkets) if (typeof m.idx === 'number') marketMap.set(m.idx, m)
+  const exhibitMap = new Map<number, Exhibit>((report.exhibits ?? []).map(e => [e.id, e]))
+  const usedExhibits = new Set<number>()
 
   return (
     <>
@@ -261,9 +264,11 @@ function Report({ report }: { report: TradeReport }) {
             {report.sections.map((sec, i) => (
               <div key={i}>
                 <h3 className="al-serif" style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-.01em', margin: '0 0 8px' }}>{sec.heading}</h3>
-                <SectionBody body={sec.body} assetMap={assetMap} macroMap={macroMap} marketMap={marketMap} />
+                <SectionBody body={sec.body} assetMap={assetMap} macroMap={macroMap} marketMap={marketMap} exhibitMap={exhibitMap} usedExhibits={usedExhibits} />
               </div>
             ))}
+            {/* Exhibits non placés par le LLM → affichés en fin de briefing. */}
+            {(report.exhibits ?? []).filter(e => !usedExhibits.has(e.id)).map(e => <ExhibitBlock key={`leftover-${e.id}`} exhibit={e} />)}
           </div>
         </Section>
       )}
@@ -433,13 +438,15 @@ function FigureMarket({ m }: { m: TradeRelatedMarket }) {
 
 // Rendu d'un corps de section : prose + figures éditoriales [[CHART:x|side|size]] / [[MARKET:i|...]].
 // Placement piloté par le LLM (côté/taille), alternance auto sinon. Token non résolu = ignoré.
-function SectionBody({ body, assetMap, macroMap, marketMap }: {
+function SectionBody({ body, assetMap, macroMap, marketMap, exhibitMap, usedExhibits }: {
   body: string
   assetMap: Map<string, TradeAsset>
   macroMap: Map<string, { label: string; price: number; changePct: number; spark?: number[] }>
   marketMap: Map<number, TradeRelatedMarket>
+  exhibitMap: Map<number, Exhibit>
+  usedExhibits: Set<number>
 }) {
-  const re = /\[\[(CHART|MARKET):([^\]|]+)(?:\|([^\]]+))?\]\]/g
+  const re = /\[\[(CHART|MARKET|EXHIBIT):([^\]|]+)(?:\|([^\]]+))?\]\]/g
   const nodes: React.ReactNode[] = []
   const used = new Set<string>()
   let last = 0, key = 0, figN = 0, mt: RegExpExecArray | null
@@ -458,6 +465,12 @@ function SectionBody({ body, assetMap, macroMap, marketMap }: {
     last = mt.index + mt[0].length
     const kind = mt[1], ref = mt[2].trim(), tag = `${kind}:${ref.toUpperCase()}`
     if (used.has(tag)) continue
+    if (kind === 'EXHIBIT') {
+      const id = Number(ref)
+      const ex = exhibitMap.get(id)
+      if (ex && !usedExhibits.has(id)) { usedExhibits.add(id); used.add(tag); nodes.push(<div key={`e${key++}`} style={{ clear: 'both' }}><ExhibitBlock exhibit={ex} /></div>) }
+      continue
+    }
     const { full, side } = placement(mt[3])
     if (kind === 'CHART') {
       const a = assetMap.get(ref.toUpperCase())
@@ -531,7 +544,7 @@ function Loader({ status, progress, steps = [], streamText = '' }: { status: str
             const isHead = /^##\s+/.test(para)
             return isHead
               ? <h3 key={i} className="al-serif" style={{ fontSize: 18, fontWeight: 700, margin: '12px 0 6px' }}>{head}</h3>
-              : <p key={i} className="al-serif" style={{ fontSize: 15, lineHeight: 1.6, color: '#3b414c', margin: '0 0 9px' }}>{para.replace(/\[\[(CHART|MARKET):[^\]]+\]\]/g, '').trim()}</p>
+              : <p key={i} className="al-serif" style={{ fontSize: 15, lineHeight: 1.6, color: '#3b414c', margin: '0 0 9px' }}>{para.replace(/\[\[(CHART|MARKET|EXHIBIT):[^\]]+\]\]/g, '').trim()}</p>
           })}
           <span style={{ display: 'inline-block', width: 7, height: 15, background: '#5b50d8', animation: 'al-pulse 1s steps(2) infinite', verticalAlign: 'middle' }} />
         </div>

@@ -186,6 +186,60 @@ export async function fetchSparklines(symbols: string[]): Promise<Map<string, nu
   return out
 }
 
+// ── Données pour les EXHIBITS (equity research) — réelles uniquement ──
+
+export interface SeriesPoint { ticker: string; points: number[] }
+/** Séries 1 an (hebdo) normalisées à 100 au départ — pour un line chart multi-séries. */
+export async function fetchNormalizedSeries(tickers: string[]): Promise<SeriesPoint[]> {
+  const uniq = [...new Set(tickers.map(t => t.trim().toUpperCase()).filter(Boolean))].slice(0, 6)
+  const out: SeriesPoint[] = []
+  await Promise.all(uniq.map(async t => {
+    try {
+      const res = await fetch(`${YF_CHART}/${encodeURIComponent(yahooSym(t))}?range=1y&interval=1wk`, { headers: { 'User-Agent': 'Mozilla/5.0' }, cache: 'no-store' })
+      if (!res.ok) return
+      const d = await res.json()
+      const closes = (d?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || []).filter((x: unknown): x is number => typeof x === 'number')
+      if (closes.length < 5) return
+      const base = closes[0] || 1
+      out.push({ ticker: t, points: closes.map((c: number) => +(c / base * 100).toFixed(1)) })
+    } catch { /* skip */ }
+  }))
+  // garde l'ordre demandé
+  return uniq.map(t => out.find(s => s.ticker === t)).filter((x): x is SeriesPoint => !!x)
+}
+
+export interface Fundamental { ticker: string; name: string; logo: string; marketCapLabel: string; pe: string; revGrowth: string }
+function fmtCap(millions: number): string {
+  if (!millions || millions <= 0) return '—'
+  if (millions >= 1e6) return `$${(millions / 1e6).toFixed(2)}T`
+  if (millions >= 1e3) return `$${Math.round(millions / 1e3)}B`
+  return `$${Math.round(millions)}M`
+}
+/** Fondamentaux réels (Finnhub) : market cap, P/E TTM, revenue growth YoY, logo. */
+export async function fetchFundamentals(tickers: string[]): Promise<Fundamental[]> {
+  const key = process.env.FINNHUB_API_KEY || ''
+  const uniq = [...new Set(tickers.map(t => t.trim().toUpperCase()).filter(Boolean))].slice(0, 6)
+  if (!key) return []
+  const res = await Promise.all(uniq.map(async t => {
+    try {
+      const [p, m] = await Promise.all([
+        fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${t}&token=${key}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null),
+        fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${t}&metric=all&token=${key}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null),
+      ])
+      if (!p || !p.name) return null
+      const mt = m?.metric || {}
+      const rg = mt.revenueGrowthTTMYoy ?? mt.revenueGrowthQuarterlyYoy
+      return {
+        ticker: t, name: p.name as string, logo: (p.logo as string) || '',
+        marketCapLabel: fmtCap(Number(p.marketCapitalization)),
+        pe: typeof mt.peTTM === 'number' ? mt.peTTM.toFixed(1) : '—',
+        revGrowth: typeof rg === 'number' ? `${rg >= 0 ? '+' : ''}${rg.toFixed(0)}%` : '—',
+      } as Fundamental
+    } catch { return null }
+  }))
+  return res.filter((x): x is Fundamental => !!x)
+}
+
 // Bandeau macro : libellés lisibles → symboles réels (ETF proxies, données Finnhub).
 export const MACRO_TICKERS: { label: string; sym: string }[] = [
   { label: 'S&P 500', sym: 'SPY' },

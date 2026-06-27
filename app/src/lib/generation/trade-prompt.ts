@@ -30,6 +30,16 @@ export interface TradeAsset {
 // Niveau macro réel (ETF proxy) affiché en tête d'article.
 export interface MacroItem { label: string; sym: string; price: number; changePct: number; spark?: number[] }
 
+// ── EXHIBITS (equity research) — specs produites par le LLM, données réelles attachées à l'hydratation ──
+export interface SeriesPointT { ticker: string; points: number[] }
+export interface FundamentalT { ticker: string; name: string; logo: string; marketCapLabel: string; pe: string; revGrowth: string }
+export type Exhibit =
+  | { id: number; type: 'linechart'; title: string; subtitle?: string; tickers: string[]; insight: string; series?: SeriesPointT[] }
+  | { id: number; type: 'metricgrid'; title?: string; tickers: string[]; fundamentals?: FundamentalT[] }
+  | { id: number; type: 'barchart'; title: string; metric: 'revGrowth' | 'pe'; tickers: string[]; insight?: string; thesisTitle?: string; thesisBullets?: string[]; fundamentals?: FundamentalT[] }
+  | { id: number; type: 'risktable'; title?: string; risksTitle?: string; risks: string[]; rows: { factor: string; impact: string; likelihood: string }[] }
+  | { id: number; type: 'verdict'; rating: string; horizon: string; note?: string }
+
 export interface TradeScenario {
   label: string
   impact: string
@@ -61,6 +71,7 @@ export interface TradeReport {
   finalTake: string
   createdAt: string
   macro?: MacroItem[]     // contexte macro réel, attaché à l'hydratation (live)
+  exhibits?: Exhibit[]    // blocs equity-research, référencés dans l'article par [[EXHIBIT:id]]
 }
 
 export interface WatchItem { sym: string; changePct?: number }
@@ -183,10 +194,19 @@ Return JSON:
   "notPricedIn": ["string"],
   "watch": ["string"],
   "finalTake": "string — 1-2 education-framed sentences",
-  "sectionPlan": [{"heading": "string", "focus": "string — one line angle"}]
+  "sectionPlan": [{"heading": "string", "focus": "string — one line angle"}],
+  "exhibits": [
+    {"id": 1, "type": "linechart", "title": "string", "subtitle": "string e.g. 'Normalized to 100, 1Y'", "tickers": ["from your assets"], "insight": "2-3 sentence key insight"},
+    {"id": 2, "type": "metricgrid", "title": "string", "tickers": ["from your assets — equities only"]},
+    {"id": 3, "type": "barchart", "title": "string", "metric": "revGrowth|pe", "tickers": ["from your assets"], "insight": "string", "thesisTitle": "string e.g. 'Bull Thesis Summary'", "thesisBullets": ["3-4 short bullets"]},
+    {"id": 4, "type": "risktable", "risksTitle": "Key Risks", "risks": ["3-4 short risk bullets"], "rows": [{"factor": "string", "impact": "High|Medium-High|Medium|Low", "likelihood": "High|Medium|Low"}]},
+    {"id": 5, "type": "verdict", "rating": "string e.g. 'Moderately Bullish'", "horizon": "string e.g. '12-24 Month Horizon'", "note": "one short line"}
+  ]
 }
 
-Provide 5-6 sectionPlan items collectively covering: the core mechanism, context/history, the bull case, the bear case, second-order/cross-asset effects, and the medium-term outlook + what would break the thesis. Always map at least 2-3 liquid assets.`
+Provide 5-6 sectionPlan items collectively covering: the core mechanism, context/history, the bull case, the bear case, second-order/cross-asset effects, and the medium-term outlook + what would break the thesis. Always map at least 2-3 liquid assets.
+
+EXHIBITS: produce 3-5 exhibits of VARIED types (don't repeat a type) chosen to illustrate the sections like a real equity-research report (a line chart for performance, a metric grid for fundamentals, a bar chart + thesis for the bull case, a risk table for the bear case, a verdict at the end). "tickers" MUST be symbols you listed in "assets" (real). All free-text (insight, risks, rows, thesisBullets, verdict) is YOUR qualitative analysis — never invent specific market numbers there. Each exhibit will be referenced exactly once in the article by [[EXHIBIT:id]].`
 }
 
 export function buildArticleSystemPrompt(): string {
@@ -206,10 +226,12 @@ export function buildArticleUserPrompt(
   markets: { idx: number; question: string; yesPct: number }[],
   assets: { sym: string; direction: string; reason: string }[],
   plan: SectionPlan[],
+  exhibits: { id: number; type: string; title?: string }[] = [],
 ): string {
   const mkts = markets.length ? markets.map(m => `[${m.idx}] (${m.yesPct}% yes) ${m.question}`).join('\n') : '(none)'
   const as = assets.length ? assets.map(a => `${a.sym} (${a.direction}) — ${a.reason}`).join('\n') : '(none)'
   const pl = plan.map((p, i) => `${i + 1}. ${p.heading} — ${p.focus}`).join('\n')
+  const ex = exhibits.length ? exhibits.map(e => `[[EXHIBIT:${e.id}]] — ${e.type}${e.title ? ` · ${e.title}` : ''}`).join('\n') : '(none)'
   return `NEWS: ${news.title} (${news.source})
 ${news.summary ?? ''}
 
@@ -219,8 +241,11 @@ ${mkts}
 PROVIDED ASSETS (reference inline with [[CHART:SYM]]):
 ${as}
 
+EXHIBITS to place (each EXACTLY ONCE, on its own line, right after the first paragraph of the most relevant section — these render as full-width equity-research blocks):
+${ex}
+
 SECTION PLAN (write each as "## heading", in order):
 ${pl}
 
-Write the full briefing now — at least 1500 words, following the plan headings, with inline blocks placed contextually.`
+Write the full briefing now — at least 1500 words, following the plan headings. Place each [[EXHIBIT:id]] once in the most relevant section (prefer exhibits over small inline [[CHART]]/[[MARKET]] blocks; you may still use 1-2 inline charts where helpful).`
 }

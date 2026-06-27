@@ -9,7 +9,7 @@ import { retrieveRelatedMarkets } from '../polymarket-index'
 import {
   buildTradeSystemPrompt, buildTradeUserPrompt,
   buildPlanSystemPrompt, buildPlanUserPrompt, buildArticleSystemPrompt, buildArticleUserPrompt,
-  type TradeReport, type TradeRelatedMarket, type TradeAsset, type TradeScenario, type WatchItem, type SectionPlan,
+  type TradeReport, type TradeRelatedMarket, type TradeAsset, type TradeScenario, type WatchItem, type SectionPlan, type Exhibit,
 } from './trade-prompt'
 import type { NewsItem } from '../types'
 
@@ -184,6 +184,18 @@ export async function generateSignalStreaming(item: NewsItem, watchlist: string[
     })
     h.onStatus?.({ step: `Assets mapped: ${assets.map(a => a.sym).join(', ') || '—'}`, pct: 46 })
 
+    // Exhibits (specs) — tickers limités aux actifs réels listés.
+    const assetSyms = new Set(assets.map(a => a.sym.toUpperCase()))
+    const exhibits: Exhibit[] = arr<Exhibit>(parsed.exhibits)
+      .filter(e => e && typeof e.id === 'number' && e.type)
+      .map(e => {
+        if ('tickers' in e && Array.isArray(e.tickers)) {
+          const t = e.tickers.map(x => String(x).toUpperCase()).filter(x => assetSyms.has(x))
+          return { ...e, tickers: t.length ? t : assets.slice(0, 4).map(a => a.sym) }
+        }
+        return e
+      })
+
     // ── Phase B : rédaction de l'article EN STREAMING ──
     h.onStatus?.({ step: 'Writing the briefing…', pct: 56 })
     const plan: SectionPlan[] = arr<SectionPlan>(parsed.sectionPlan)
@@ -191,7 +203,7 @@ export async function generateSignalStreaming(item: NewsItem, watchlist: string[
       model: 'gpt-4o-mini', max_tokens: 6000, stream: true, stream_options: { include_usage: true },
       messages: [
         { role: 'system', content: buildArticleSystemPrompt() },
-        { role: 'user', content: buildArticleUserPrompt(item, relatedMarkets.map(r => ({ idx: r.idx, question: r.question ?? '', yesPct: r.yesPct ?? 0 })), assets.map(a => ({ sym: a.sym, direction: a.direction, reason: a.reason })), plan) },
+        { role: 'user', content: buildArticleUserPrompt(item, relatedMarkets.map(r => ({ idx: r.idx, question: r.question ?? '', yesPct: r.yesPct ?? 0 })), assets.map(a => ({ sym: a.sym, direction: a.direction, reason: a.reason })), plan, exhibits.map(e => ({ id: e.id, type: e.type, title: 'title' in e ? e.title : undefined }))) },
       ],
     })
     let articleText = ''
@@ -222,6 +234,7 @@ export async function generateSignalStreaming(item: NewsItem, watchlist: string[
       watch: arr<string>(parsed.watch),
       finalTake: parsed.finalTake ?? '',
       createdAt: new Date().toISOString(),
+      exhibits,
     }
     return {
       report,

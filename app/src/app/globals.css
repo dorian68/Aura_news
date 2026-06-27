@@ -136,4 +136,6 @@ body {
   .al-mosaic-cell { grid-column: span 1 !important; }
   /* Les figures éditoriales flottées repassent en pleine largeur sur mobile. */
   .al-figure { float: none !important; width: 100% !important; max-width: 100% !important; margin: 14px 0 !important; }
+  /* Les exhibits multi-colonnes s'empilent sur mobile. */
+  .al-exhibit-row { flex-direction: column !important; }
 }
