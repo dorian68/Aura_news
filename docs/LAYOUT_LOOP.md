@@ -52,3 +52,25 @@ Le LLM est l'**éditeur** : il choisit quel exhibit par section. Données **rée
   affichés). 0 fabrication (vide → null).
 - DECIDE : ITERATING. Plus faible = C3 → faire piloter des ACTIONS (pas ETF) pour
   metricgrid/barchart afin que fondamentaux+logos remontent.
+
+### Itération 2 — actions → fondamentaux réels
+- metricgrid/barchart tickers = actions only → NVDA/AAPL/MSFT avec marketcap/PE/
+  revGrowth/logo réels. C1=9 C2=8 C3=9. Placement non vérifié visuellement → ITERATING.
+
+### Itération 3 — polish (mois axe X, dates sources, gridlines bar, logos)
+
+### Itération 4 — VÉRIFICATION VISUELLE (Chrome headless) + placement déterministe
+- DÉBLOCAGE : capture réelle via Chrome headless + endpoint snapshot statique
+  (`/api/signal` + `?snapshot=`) → rendu enfin visible.
+- Bug : exhibits inline (SectionBody) ne rendaient pas. Corrigé → placement 100%
+  déterministe : 1 exhibit/section (mechanism→linechart, context→metricgrid,
+  bull→barchart+thèse, bear→risktable, verdict→fin).
+- VÉRIFIÉ À L'ÉCRAN : line chart multi-séries (légende/axes/mois/baseline100/Key
+  Insight/source) ; metric grid (logos NVIDIA/Apple/MSFT, cap/PE/revGrowth) ;
+  bull 3-panneaux ; bear (Key Risks + table colorée) ; verdict ; figures marché
+  flottées avec habillage.
+- VERIFY : **C1=9 · C2=8 · C3=9** → tous ≥ 8. DECIDE : **FINAL** ✅.
+
+## 🏁 FINAL (2026-06-27)
+Layout equity-research atteint et vérifié à l'écran. Contrôle : Chrome headless sur
+`/trade?snapshot=<newsId>`. Polish résiduel non bloquant.

@@ -76,6 +76,15 @@ function TradeInner() {
   useEffect(() => {
     if (init.current) return
     init.current = true
+    // Mode snapshot : rend un rapport hydraté en cache, sans streaming (capture/partage).
+    const snap = params.get('snapshot')
+    if (snap) {
+      fetch(`/api/signal?newsId=${encodeURIComponent(snap)}`).then(r => r.ok ? r.json() : null).then(d => {
+        if (d?.report) { setReport(d.report); setSelected(snap); setBusy(false) }
+        else { setBusy(false); setError('Snapshot not found.') }
+      }).catch(() => { setBusy(false); setError('Snapshot failed.') })
+      return
+    }
     const idParam = params.get('id')
     fetch('/api/news').then(r => r.json()).then((list: NewsItem[]) => {
       setNews(list)
@@ -167,8 +176,17 @@ function Report({ report }: { report: TradeReport }) {
   const macroMap = new Map((report.macro || []).map(m => [m.sym.toUpperCase(), { label: m.label, price: m.price, changePct: m.changePct, spark: m.spark }]))
   const marketMap = new Map<number, TradeRelatedMarket>()
   for (const m of report.relatedMarkets) if (typeof m.idx === 'number') marketMap.set(m.idx, m)
-  const exhibitMap = new Map<number, Exhibit>((report.exhibits ?? []).map(e => [e.id, e]))
-  const usedExhibits = new Set<number>()
+  // Placement déterministe façon equity research : 1 exhibit par section, dans
+  // l'ordre (mechanism→linechart, context→metricgrid, bull→barchart, bear→risktable…),
+  // le verdict toujours en dernier. Robuste, indépendant du placement LLM.
+  const nSec = report.sections.length
+  const perSection: Exhibit[][] = report.sections.map(() => [])
+  if (nSec) {
+    const verdicts = (report.exhibits ?? []).filter(e => e.type === 'verdict')
+    const rest = (report.exhibits ?? []).filter(e => e.type !== 'verdict')
+    rest.forEach((e, k) => perSection[Math.min(k, nSec - 1)].push(e))
+    verdicts.forEach(e => perSection[nSec - 1].push(e))   // verdict en bas
+  }
 
   return (
     <>
@@ -264,11 +282,10 @@ function Report({ report }: { report: TradeReport }) {
             {report.sections.map((sec, i) => (
               <div key={i}>
                 <h3 className="al-serif" style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-.01em', margin: '0 0 8px' }}>{sec.heading}</h3>
-                <SectionBody body={sec.body} assetMap={assetMap} macroMap={macroMap} marketMap={marketMap} exhibitMap={exhibitMap} usedExhibits={usedExhibits} />
+                <SectionBody body={sec.body} assetMap={assetMap} macroMap={macroMap} marketMap={marketMap} />
+                {perSection[i].map(e => <ExhibitBlock key={`auto-${e.id}`} exhibit={e} />)}
               </div>
             ))}
-            {/* Exhibits non placés par le LLM → affichés en fin de briefing. */}
-            {(report.exhibits ?? []).filter(e => !usedExhibits.has(e.id)).map(e => <ExhibitBlock key={`leftover-${e.id}`} exhibit={e} />)}
           </div>
         </Section>
       )}
@@ -438,13 +455,11 @@ function FigureMarket({ m }: { m: TradeRelatedMarket }) {
 
 // Rendu d'un corps de section : prose + figures éditoriales [[CHART:x|side|size]] / [[MARKET:i|...]].
 // Placement piloté par le LLM (côté/taille), alternance auto sinon. Token non résolu = ignoré.
-function SectionBody({ body, assetMap, macroMap, marketMap, exhibitMap, usedExhibits }: {
+function SectionBody({ body, assetMap, macroMap, marketMap }: {
   body: string
   assetMap: Map<string, TradeAsset>
   macroMap: Map<string, { label: string; price: number; changePct: number; spark?: number[] }>
   marketMap: Map<number, TradeRelatedMarket>
-  exhibitMap: Map<number, Exhibit>
-  usedExhibits: Set<number>
 }) {
   const re = /\[\[(CHART|MARKET|EXHIBIT):([^\]|]+)(?:\|([^\]]+))?\]\]/g
   const nodes: React.ReactNode[] = []
@@ -465,12 +480,7 @@ function SectionBody({ body, assetMap, macroMap, marketMap, exhibitMap, usedExhi
     last = mt.index + mt[0].length
     const kind = mt[1], ref = mt[2].trim(), tag = `${kind}:${ref.toUpperCase()}`
     if (used.has(tag)) continue
-    if (kind === 'EXHIBIT') {
-      const id = Number(ref)
-      const ex = exhibitMap.get(id)
-      if (ex && !usedExhibits.has(id)) { usedExhibits.add(id); used.add(tag); nodes.push(<div key={`e${key++}`} style={{ clear: 'both' }}><ExhibitBlock exhibit={ex} /></div>) }
-      continue
-    }
+    if (kind === 'EXHIBIT') continue   // tokens strippés : placement déterministe par section (voir Report)
     const { full, side } = placement(mt[3])
     if (kind === 'CHART') {
       const a = assetMap.get(ref.toUpperCase())

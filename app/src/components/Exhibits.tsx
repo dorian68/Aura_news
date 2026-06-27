@@ -4,6 +4,19 @@ import type { Exhibit, SeriesPointT, FundamentalT } from '@/lib/generation/trade
 
 const PALETTE = ['#0f7d56', '#2469a6', '#d8a13a', '#7d4fd8', '#c43d34', '#2f9488']
 
+function todayLabel(): string {
+  return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+// Labels de mois (12 mois glissants) pour l'axe X du line chart.
+function monthTicks(n = 6): { frac: number; label: string }[] {
+  const now = new Date()
+  return Array.from({ length: n }).map((_, k) => {
+    const frac = k / (n - 1)
+    const d = new Date(now.getFullYear(), now.getMonth() - Math.round((1 - frac) * 11), 1)
+    return { frac, label: `${d.toLocaleDateString('en-US', { month: 'short' })} '${String(d.getFullYear()).slice(2)}` }
+  })
+}
+
 function ExhibitCard({ source, children }: { source?: string; children: React.ReactNode }) {
   return (
     <div style={{ clear: 'both', margin: '18px 0 22px' }}>
@@ -42,15 +55,16 @@ function Legend({ series }: { series?: SeriesPointT[] }) {
 
 function MultiLineChart({ series }: { series: SeriesPointT[] }) {
   if (!series.length) return null
-  const W = 720, H = 240, padL = 38, padR = 12, padT = 10, padB = 18
+  const W = 720, H = 250, padL = 38, padR = 12, padT = 10, padB = 26
   const all = series.flatMap(s => s.points)
   let min = Math.min(...all), max = Math.max(...all)
   const span = (max - min) * 0.08 || 1; min -= span; max += span
   const x = (i: number, len: number) => padL + (len <= 1 ? 0 : (i / (len - 1)) * (W - padL - padR))
+  const xf = (frac: number) => padL + frac * (W - padL - padR)
   const y = (v: number) => padT + (1 - (v - min) / (max - min || 1)) * (H - padT - padB)
   const ticks = 4
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" preserveAspectRatio="none" style={{ display: 'block', height: 220 }}>
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" preserveAspectRatio="none" style={{ display: 'block', height: 230 }}>
       {Array.from({ length: ticks + 1 }).map((_, i) => {
         const v = min + (max - min) * i / ticks, yy = y(v)
         return (
@@ -61,6 +75,9 @@ function MultiLineChart({ series }: { series: SeriesPointT[] }) {
         )
       })}
       {min < 100 && max > 100 && <line x1={padL} y1={y(100)} x2={W - padR} y2={y(100)} stroke="#c9c1b0" strokeWidth={1} strokeDasharray="3 3" />}
+      {monthTicks(6).map((t, i) => (
+        <text key={i} x={xf(t.frac)} y={H - 8} textAnchor={i === 0 ? 'start' : i === 5 ? 'end' : 'middle'} fontSize="9" fill="#a9a18f" fontFamily="monospace">{t.label}</text>
+      ))}
       {series.map((s, si) => (
         <polyline key={s.ticker} points={s.points.map((v, i) => `${x(i, s.points.length).toFixed(1)},${y(v).toFixed(1)}`).join(' ')} fill="none" stroke={PALETTE[si % PALETTE.length]} strokeWidth={1.6} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
       ))}
@@ -70,7 +87,7 @@ function MultiLineChart({ series }: { series: SeriesPointT[] }) {
 
 function LineChartExhibit({ e }: { e: Extract<Exhibit, { type: 'linechart' }> }) {
   return (
-    <ExhibitCard source="Source: Yahoo Finance · 1Y weekly, normalized to 100">
+    <ExhibitCard source={`Source: Yahoo Finance · 1Y weekly, normalized to 100 · as of ${todayLabel()}`}>
       <div className="al-exhibit-row" style={{ display: 'flex' }}>
         <div style={{ flex: '1 1 66%', minWidth: 0, padding: '16px 18px' }}>
           <div className="al-serif" style={{ fontSize: 16, fontWeight: 700 }}>{e.title}</div>
@@ -96,14 +113,14 @@ function MetricGridExhibit({ e }: { e: Extract<Exhibit, { type: 'metricgrid' }> 
     </div>
   )
   return (
-    <ExhibitCard source="Source: Finnhub · profile & key metrics">
+    <ExhibitCard source={`Source: Finnhub · profile & key metrics · as of ${todayLabel()}`}>
       <div className="al-exhibit-row" style={{ display: 'flex' }}>
         {f.map((c, i) => (
           <div key={c.ticker} style={{ flex: 1, minWidth: 0, padding: '16px 16px', borderLeft: i ? '1px solid #f0ece1' : 'none' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 26 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, minHeight: 30 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              {c.logo ? <img src={c.logo} alt="" width={20} height={20} style={{ borderRadius: 4, objectFit: 'contain' }} /> : null}
-              <span className="al-serif" style={{ fontSize: 15, fontWeight: 700 }}>{c.name.split(' ')[0]}</span>
+              {c.logo ? <img src={c.logo} alt="" width={26} height={26} style={{ borderRadius: 5, objectFit: 'contain' }} /> : null}
+              <span className="al-serif" style={{ fontSize: 16.5, fontWeight: 700 }}>{c.name.split(' ')[0]}</span>
             </div>
             <Metric label="Market Cap" value={c.marketCapLabel} />
             <Metric label="P/E (TTM)" value={c.pe} color="#2469a6" />
@@ -123,12 +140,19 @@ function parseMetric(f: FundamentalT, metric: 'revGrowth' | 'pe'): number {
 
 function BarChart({ bars, suffix }: { bars: { label: string; value: number }[]; suffix: string }) {
   if (!bars.length) return null
-  const W = 460, H = 200, padT = 24, padB = 24, padL = 8, padR = 8
+  const W = 460, H = 200, padT = 24, padB = 24, padL = 30, padR = 10
   const max = Math.max(...bars.map(b => Math.abs(b.value))) || 1
   const bw = (W - padL - padR) / bars.length
   const zero = H - padB
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', height: 190 }}>
+      {[0.25, 0.5, 0.75, 1].map((f, i) => {
+        const yy = zero - f * (H - padT - padB)
+        return <g key={i}>
+          <line x1={padL} y1={yy} x2={W - padR} y2={yy} stroke="#f1ece0" strokeWidth={1} />
+          <text x={padL - 4} y={yy + 3} textAnchor="end" fontSize="8.5" fill="#b5ad9b" fontFamily="monospace">{Math.round(f * max)}{suffix}</text>
+        </g>
+      })}
       <line x1={padL} y1={zero} x2={W - padR} y2={zero} stroke="#ece7da" strokeWidth={1} />
       {bars.map((b, i) => {
         const h = (Math.abs(b.value) / max) * (H - padT - padB)
@@ -171,7 +195,7 @@ function BarChartExhibit({ e }: { e: Extract<Exhibit, { type: 'barchart' }> }) {
   const bars = f.map(x => ({ label: x.ticker, value: parseMetric(x, e.metric) })).filter(b => b.value !== 0)
   const suffix = e.metric === 'pe' ? '' : '%'
   return (
-    <ExhibitCard source="Source: Finnhub · key metrics">
+    <ExhibitCard source={`Source: Finnhub · key metrics · as of ${todayLabel()}`}>
       <div className="al-exhibit-row" style={{ display: 'flex' }}>
         {e.thesisBullets?.length ? (
           <div style={{ flex: '0 0 32%', background: '#f3f0e8', borderRight: '1px solid #e6e0d3', padding: '16px 16px' }}>
