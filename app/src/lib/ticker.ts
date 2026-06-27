@@ -1,9 +1,8 @@
-// Real ticker tape — Twelve Data (equities/FX/index) + CoinGecko (crypto),
-// mapped to the TickerTape display shape. No mock fallback: returns whatever the
-// live APIs give (possibly []), so an empty/failed key is visible, not hidden.
+// Ticker tape RÉEL — Finnhub (actions/ETF) + CoinGecko (crypto), via la couche
+// market-data partagée (no-store). Aucun mock, aucune valeur figée : un symbole
+// sans donnée live est simplement absent (jamais inventé).
 
-const TWELVE_KEY = process.env.TWELVE_DATA_API_KEY || ''
-const COINGECKO_KEY = process.env.COIN_GECKO_API_KEY || ''
+import { fetchAssetQuotes } from './market-data'
 
 export interface TickerItem {
   sym: string
@@ -14,6 +13,20 @@ export interface TickerItem {
 
 const UP = '#0f7d56'
 const DOWN = '#c43d34'
+
+// Proxies liquides réels (Finnhub) + crypto (CoinGecko). Libellés affichés.
+const TICKERS: { sym: string; label: string }[] = [
+  { sym: 'SPY', label: 'S&P 500' },
+  { sym: 'QQQ', label: 'Nasdaq' },
+  { sym: 'DIA', label: 'Dow' },
+  { sym: 'GLD', label: 'Gold' },
+  { sym: 'USO', label: 'Oil' },
+  { sym: 'TLT', label: 'US 10Y' },
+  { sym: 'UUP', label: 'USD' },
+  { sym: 'VIXY', label: 'VIX' },
+  { sym: 'BTC', label: 'BTC' },
+  { sym: 'ETH', label: 'ETH' },
+]
 
 function fmtPrice(n: number): string {
   if (!n) return '—'
@@ -27,51 +40,14 @@ function fmtChg(pct: number): { chg: string; col: string } {
   return { chg: `${sign}${pct.toFixed(2)}%`, col: pct >= 0 ? UP : DOWN }
 }
 
-async function fetchEquities(): Promise<TickerItem[]> {
-  if (!TWELVE_KEY) return []
-  try {
-    const syms = ['SPY', 'QQQ', 'GLD', 'TLT', 'VIX'].join(',')
-    const res = await fetch(
-      `https://api.twelvedata.com/quote?symbol=${syms}&apikey=${TWELVE_KEY}`,
-      { next: { revalidate: 900 } },
-    )
-    if (!res.ok) return []
-    const data = await res.json()
-    const rows = Object.values(data).filter(
-      (r): r is Record<string, unknown> => !!r && typeof r === 'object' && 'symbol' in r,
-    )
-    return rows.map((r) => {
-      const pct = parseFloat(r.percent_change as string) || 0
-      const { chg, col } = fmtChg(pct)
-      return { sym: r.symbol as string, px: fmtPrice(parseFloat(r.close as string) || 0), chg, col }
-    })
-  } catch {
-    return []
-  }
-}
-
-async function fetchCrypto(): Promise<TickerItem[]> {
-  try {
-    const headers: HeadersInit = COINGECKO_KEY ? { 'x-cg-demo-api-key': COINGECKO_KEY } : {}
-    const res = await fetch(
-      'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true',
-      { headers, next: { revalidate: 300 } },
-    )
-    if (!res.ok) return []
-    const d = await res.json()
-    const out: TickerItem[] = []
-    for (const [id, sym] of [['bitcoin', 'BTC'], ['ethereum', 'ETH']] as const) {
-      if (!d[id]) continue
-      const { chg, col } = fmtChg(d[id].usd_24h_change || 0)
-      out.push({ sym, px: fmtPrice(d[id].usd || 0), chg, col })
-    }
-    return out
-  } catch {
-    return []
-  }
-}
-
 export async function fetchTickerItems(): Promise<TickerItem[]> {
-  const [eq, crypto] = await Promise.all([fetchEquities(), fetchCrypto()])
-  return [...eq, ...crypto]
+  const quotes = await fetchAssetQuotes(TICKERS.map(t => t.sym))
+  const out: TickerItem[] = []
+  for (const t of TICKERS) {
+    const q = quotes.get(t.sym.toUpperCase())
+    if (!q) continue                      // pas de donnée réelle → on n'affiche rien
+    const { chg, col } = fmtChg(q.changePct)
+    out.push({ sym: t.label, px: fmtPrice(q.price), chg, col })
+  }
+  return out
 }

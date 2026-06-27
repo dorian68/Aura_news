@@ -108,14 +108,21 @@ const CRYPTO_MAP: Record<string, string> = {
 
 export interface AssetQuote { sym: string; price: number; changePct: number }
 
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
 async function finnhubQuote(sym: string, key: string): Promise<AssetQuote | null> {
-  try {
-    const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${key}`, { cache: 'no-store' })
-    if (!res.ok) return null
-    const q = await res.json()
-    if (typeof q.c !== 'number' || q.c === 0) return null   // 0 = symbole inconnu
-    return { sym, price: q.c, changePct: typeof q.dp === 'number' ? q.dp : 0 }
-  } catch { return null }
+  // Retry court sur throttle (429) ou erreur réseau transitoire → données fiables.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${key}`, { cache: 'no-store' })
+      if (res.status === 429) { await sleep(350 * (attempt + 1)); continue }
+      if (!res.ok) return null
+      const q = await res.json()
+      if (typeof q.c !== 'number' || q.c === 0) return null   // 0 = symbole inconnu
+      return { sym, price: q.c, changePct: typeof q.dp === 'number' ? q.dp : 0 }
+    } catch { await sleep(250) }
+  }
+  return null
 }
 
 /**
@@ -139,16 +146,20 @@ export async function fetchAssetQuotes(symbols: string[]): Promise<Map<string, A
     // Crypto — CoinGecko (un seul appel)
     (async () => {
       if (!cryptoIds.length) return
-      try {
-        const ids = [...new Set(cryptoIds.map(c => c.id))].join(',')
-        const r = await fetch(`${COINGECKO_BASE}/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`, { cache: 'no-store' })
-        if (!r.ok) return
-        const d = await r.json()
-        for (const c of cryptoIds) {
-          const row = d[c.id]
-          if (row?.usd) out.set(c.sym, { sym: c.sym, price: row.usd, changePct: row.usd_24h_change ?? 0 })
-        }
-      } catch { /* rien */ }
+      const ids = [...new Set(cryptoIds.map(c => c.id))].join(',')
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const r = await fetch(`${COINGECKO_BASE}/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`, { cache: 'no-store' })
+          if (r.status === 429) { await sleep(400 * (attempt + 1)); continue }
+          if (!r.ok) return
+          const d = await r.json()
+          for (const c of cryptoIds) {
+            const row = d[c.id]
+            if (row?.usd) out.set(c.sym, { sym: c.sym, price: row.usd, changePct: row.usd_24h_change ?? 0 })
+          }
+          return
+        } catch { await sleep(250) }
+      }
     })(),
   ])
   return out
