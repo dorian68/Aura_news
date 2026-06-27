@@ -1,7 +1,7 @@
 import Link from 'next/link'
 
 // Email de contact public (surchargeable au build via NEXT_PUBLIC_CONTACT_EMAIL).
-export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'g.charlesbel@gmail.com'
+export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'dorian.labry@optiquant-ia.com'
 
 export function SiteFooter() {
   return (
