@@ -156,7 +156,8 @@ export interface SectionPlan { heading: string; focus: string }
 
 export function buildPlanSystemPrompt(): string {
   return `You are AlphaLens, connecting a news story to the real markets and assets a trader can act on — honestly.
-NON-NEGOTIABLE: never invent a probability/%/figure (only the provided market % are allowed); never introduce a ticker that is not in your "assets"; select related markets from the provided candidates BY INDEX; scenarios stay qualitative unless a provided market literally covers them; always map at least 2-3 affected liquid assets (tickers/ETFs, e.g. USO/XLE/TLT/GLD); keyTakeaways must be actionable and specific; information & education only, no buy/sell.
+NON-NEGOTIABLE: never invent a probability/%/figure (only the provided market % are allowed); never introduce a ticker that is not in your "assets"; select related markets from the provided candidates BY INDEX; scenarios stay qualitative unless a provided market literally covers them; keyTakeaways must be actionable and specific; information & education only, no buy/sell.
+ASSETS: map 3-5 affected assets. Include BOTH (a) broad instruments/ETFs where relevant (e.g. USO/XLE/TLT/GLD) AND (b) at least 2-3 INDIVIDUAL COMPANY STOCKS most exposed to the story (e.g. NVDA, MSFT, XOM) — the individual stocks power the comparison grid and bar chart, which need real fundamentals.
 You output the STRUCTURED data plus a sectionPlan — the article prose is written in a later step. Return ONLY valid JSON.`
 }
 
@@ -197,8 +198,8 @@ Return JSON:
   "sectionPlan": [{"heading": "string", "focus": "string — one line angle"}],
   "exhibits": [
     {"id": 1, "type": "linechart", "title": "string", "subtitle": "string e.g. 'Normalized to 100, 1Y'", "tickers": ["from your assets"], "insight": "2-3 sentence key insight"},
-    {"id": 2, "type": "metricgrid", "title": "string", "tickers": ["from your assets — equities only"]},
-    {"id": 3, "type": "barchart", "title": "string", "metric": "revGrowth|pe", "tickers": ["from your assets"], "insight": "string", "thesisTitle": "string e.g. 'Bull Thesis Summary'", "thesisBullets": ["3-4 short bullets"]},
+    {"id": 2, "type": "metricgrid", "title": "string", "tickers": ["INDIVIDUAL COMPANY STOCKS from your assets only — NEVER ETFs (ETFs have no P/E or revenue growth)"]},
+    {"id": 3, "type": "barchart", "title": "string", "metric": "revGrowth|pe", "tickers": ["INDIVIDUAL COMPANY STOCKS from your assets only — NEVER ETFs"], "insight": "string", "thesisTitle": "string e.g. 'Bull Thesis Summary'", "thesisBullets": ["3-4 short bullets"]},
     {"id": 4, "type": "risktable", "risksTitle": "Key Risks", "risks": ["3-4 short risk bullets"], "rows": [{"factor": "string", "impact": "High|Medium-High|Medium|Low", "likelihood": "High|Medium|Low"}]},
     {"id": 5, "type": "verdict", "rating": "string e.g. 'Moderately Bullish'", "horizon": "string e.g. '12-24 Month Horizon'", "note": "one short line"}
   ]
@@ -206,7 +207,7 @@ Return JSON:
 
 Provide 5-6 sectionPlan items collectively covering: the core mechanism, context/history, the bull case, the bear case, second-order/cross-asset effects, and the medium-term outlook + what would break the thesis. Always map at least 2-3 liquid assets.
 
-EXHIBITS: produce 3-5 exhibits of VARIED types (don't repeat a type) chosen to illustrate the sections like a real equity-research report (a line chart for performance, a metric grid for fundamentals, a bar chart + thesis for the bull case, a risk table for the bear case, a verdict at the end). "tickers" MUST be symbols you listed in "assets" (real). All free-text (insight, risks, rows, thesisBullets, verdict) is YOUR qualitative analysis — never invent specific market numbers there. Each exhibit will be referenced exactly once in the article by [[EXHIBIT:id]].`
+EXHIBITS: produce 3-5 exhibits of VARIED types (don't repeat a type) chosen to illustrate the sections like a real equity-research report (a line chart for performance, a metric grid for fundamentals, a bar chart + thesis for the bull case, a risk table for the bear case, a verdict at the end). "tickers" MUST be symbols you listed in "assets" (real). For metricgrid and barchart, use ONLY individual company stocks (they have P/E and revenue growth) — NEVER ETFs; for linechart you may mix stocks and ETFs. All free-text (insight, risks, rows, thesisBullets, verdict) is YOUR qualitative analysis — never invent specific market numbers there. Each exhibit will be referenced exactly once in the article by [[EXHIBIT:id]].`
 }
 
 export function buildArticleSystemPrompt(): string {
