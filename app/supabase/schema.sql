@@ -21,3 +21,14 @@ create index if not exists alphalens_articles_section_idx   on alphalens_article
 
 -- Ingester uses the service_role key (bypasses RLS); block anon access.
 alter table alphalens_articles enable row level security;
+
+-- Contact form messages (page /contact).
+create table if not exists alphalens_contact_messages (
+  id          bigint generated always as identity primary key,
+  name        text,
+  email       text not null,
+  message     text not null,
+  created_at  timestamptz not null default now()
+);
+alter table alphalens_contact_messages enable row level security;
+-- (service_role bypasses RLS; no anon policy = anon can't read/write directly)

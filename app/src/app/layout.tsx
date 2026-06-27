@@ -5,6 +5,7 @@ import { CreditsModal } from '@/components/modals/CreditsModal'
 import { FloatingChat } from '@/components/home/FloatingChat'
 import { MatchAngleModal } from '@/components/modals/MatchAngleModal'
 import { GoalAlert } from '@/components/worldcup/GoalAlert'
+import { SiteFooter } from '@/components/SiteFooter'
 
 export const metadata: Metadata = {
   title: 'AlphaLens Daily',
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         {children}
+        <SiteFooter />
         <AngleModal />
         <CreditsModal />
         <FloatingChat />
