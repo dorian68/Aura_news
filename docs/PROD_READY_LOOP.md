@@ -54,4 +54,14 @@ absentes. Dépendance : `SNAPTRADE_CLIENT_ID` + `SNAPTRADE_CONSUMER_KEY`.
 
 ## Journal
 ### Itération 0 — cadrage
-- Playbook créé. Prochain pas : (b) résiduels landing (chip animation + entrées chat).
+- Playbook créé.
+
+### Itération 1 — (b) Polish landing + responsive (2026-06-28)
+- PLAN : résiduels landing (chip démo + responsive mobile).
+- DO : chip « Play the animation » (pill noir gimmicky) → « ▶ See it in action »
+  accent subtil. Vérif mobile (390px) → 3 défauts trouvés et corrigés : logo
+  masthead (font 50 → clamp 30-50), cards « Today on the desk » (grille 3-col →
+  auto-fit/minmax, s'empilent), « 1 credit » masqué <480px (place au bouton Ask).
+- Build OK, déployé (deploy.sh), healthcheck public 200, rien cassé.
+- VERIFY (vérif écran desktop+mobile) : **B1=8**, **G=8**, A1=0, A2=0, C1=0.
+- DECIDE : ITERATING. Prochain pas = (a) AG-UI (backend endpoint SSE d'abord).

@@ -33,7 +33,7 @@ export function Masthead() {
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, padding: '8px 0 12px' }}>
           <div style={{ flex: 1, height: 1, background: '#d9d3c4' }} />
-          <h1 className="al-serif" style={{ fontSize: 50, fontWeight: 700, letterSpacing: '-.018em', lineHeight: 1, whiteSpace: 'nowrap', margin: 0 }}>
+          <h1 className="al-serif" style={{ fontSize: 'clamp(30px, 8.5vw, 50px)', fontWeight: 700, letterSpacing: '-.018em', lineHeight: 1, whiteSpace: 'nowrap', margin: 0 }}>
             AlphaLens <span style={{ fontStyle: 'italic', fontWeight: 500 }}>Daily</span>
           </h1>
           <div style={{ flex: 1, height: 1, background: '#d9d3c4' }} />

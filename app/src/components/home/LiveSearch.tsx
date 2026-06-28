@@ -164,7 +164,7 @@ export function LiveSearch() {
                   style={{ position: 'relative', width: '100%', border: 'none', outline: 'none', background: 'transparent', fontSize: 17, color: '#16181d', fontStyle: 'italic', padding: 0 }}
                 />
               </div>
-              <span className="al-mono" style={{ fontSize: 11, color: '#a39b8c', flex: 'none' }}>1 credit</span>
+              <span className="al-mono al-hide-sm" style={{ fontSize: 11, color: '#a39b8c', flex: 'none' }}>1 credit</span>
               <button className="btn btn-ai btn-sm" onClick={() => ignite(suggestions[0]?.question || query)} style={{ borderRadius: 11, flex: 'none', fontWeight: 700 }}>✦ Ask</button>
             </div>
           </div>
@@ -207,7 +207,7 @@ export function LiveSearch() {
               <span style={{ color: c.catCol }}>●</span>{c.question.replace(/^Will (the )?/, '').replace(/\?$/, '').slice(0, 32)}…
             </span>
           ))}
-          <span className="als-chip al-mono" onClick={playDemo} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11.5, padding: '6px 13px', borderRadius: 999, background: '#16181d', border: '1px solid #16181d', color: '#fff' }}>▶ Play the animation</span>
+          <span className="als-chip al-mono" onClick={playDemo} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, padding: '6px 12px', borderRadius: 999, background: '#f1effb', border: '1px solid #ddd9f7', color: '#5b50d8' }}>▶ See it in action</span>
         </div>
       </div>
 
@@ -218,7 +218,7 @@ export function LiveSearch() {
             <span className="al-mono" style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: '#8b93a1' }}>Today on the desk · live</span>
             <div style={{ flex: 1, height: 1, background: '#d9d3c4' }} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 16 }}>
             {trending.slice(0, 3).map(d => (
               <div key={d.id} className="als-card" onClick={() => ignite(d.question)} style={{ background: '#fff', border: '1px solid #e6e0d3', borderRadius: 14, padding: '16px 17px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 }}>
