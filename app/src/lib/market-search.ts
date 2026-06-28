@@ -94,11 +94,22 @@ async function allMarkets(): Promise<MarketHit[]> {
 const STOP = new Set(['will', 'the', 'a', 'an', 'of', 'to', 'in', 'on', 'by', 'be', 'at', 'before', 'reach', 'win', 'than', 'this', 'and', 'for'])
 const toks = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !STOP.has(w))
 
-/** Search real markets by token overlap; q='' returns trending (top volume). */
+// Produit financier : les marchés "tendance" priorisent la finance (pas le sport).
+const FINANCE_CATS = new Set(['Crypto', 'Macro', 'AI / Tech', 'Equities', 'Commodities'])
+
+/** Search real markets by token overlap; q='' returns trending (FINANCE first). */
 export async function searchMarkets(q: string, limit = 6): Promise<MarketHit[]> {
   const all = await allMarkets()
   const want = toks(q.trim())
-  if (!want.length) return all.slice(0, limit)
+  if (!want.length) {
+    // Tendance : marchés FINANCIERS et réellement incertains (5-95%) d'abord —
+    // on évite les marchés quasi-résolus (0%/100%) qui font "filler".
+    const live = (m: MarketHit) => m.yesPct >= 5 && m.yesPct <= 95
+    const finLive = all.filter(m => FINANCE_CATS.has(m.category) && live(m))
+    const finRest = all.filter(m => FINANCE_CATS.has(m.category) && !live(m))
+    const otherLive = all.filter(m => !FINANCE_CATS.has(m.category) && live(m))
+    return [...finLive, ...finRest, ...otherLive].slice(0, limit)
+  }
   const scored = all
     .map(m => { const hay = toks(m.question); let s = 0; for (const w of want) if (hay.some(h => h.includes(w))) s++; return { m, s } })
     .filter(x => x.s > 0)

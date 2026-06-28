@@ -181,7 +181,7 @@ export function NewsCard({ item, variant = 'card' }: Props) {
           style={{ padding: '8px 16px', fontSize: 12, width: '100%' }}
           onClick={(e) => { e.stopPropagation(); setShowAngles(true) }}
         >
-          ✦ Price this event — 1 cr.
+          ✦ Signal
         </button>
       ) : (
         <AngleSelector newsId={item.id} onClose={() => setShowAngles(false)} />

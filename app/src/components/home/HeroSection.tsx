@@ -6,7 +6,8 @@ const WATCH_COLORS = ['#8a6d1e', '#2469a6', '#0f7d56', '#5b50d8']
 
 export function HeroSection({ news }: { news: NewsItem[] }) {
   const lead = news[0]
-  const watching = news.slice(1, 5)
+  // Distinct de la mosaïque (qui utilise news[1..5]) pour éviter la redite.
+  const watching = news.slice(8, 12)
   const router = useRouter()
   const open = (n: NewsItem) => router.push(`/trade?news=${encodeURIComponent(n.id)}`)
 
@@ -60,7 +61,7 @@ export function HeroSection({ news }: { news: NewsItem[] }) {
           className="btn btn-ai"
           onClick={(e) => { e.stopPropagation(); open(lead) }}
         >
-          ✦ Price this event
+          ✦ Signal
         </button>
       </article>
 
@@ -93,7 +94,7 @@ export function HeroSection({ news }: { news: NewsItem[] }) {
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#eef0f3', lineHeight: 1.2 }}>{w.title}</div>
                 <div className="al-mono" style={{ fontSize: 9.5, color: '#7a818e', letterSpacing: '.04em', textTransform: 'uppercase', marginTop: 1 }}>{w.category || w.source}</div>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#a99bff', whiteSpace: 'nowrap' }}>Generate →</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#a99bff', whiteSpace: 'nowrap' }}>Signal →</span>
             </div>
           ))}
           {watching.length === 0 && (

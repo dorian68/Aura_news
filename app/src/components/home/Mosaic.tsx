@@ -56,7 +56,7 @@ export function Mosaic({ news }: Props) {
           <p className="al-serif" style={{ fontSize: 16.5, lineHeight: 1.5, color: '#3b414c', marginBottom: 18, flex: 1 }}>{feature.dek || feature.summary}</p>
           <Tickers items={feature.tickers} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #e6e0d3', paddingTop: 14 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#5b50d8' }}>✦ Price this event</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#5b50d8' }}>✦ Signal</span>
             <span style={{ color: '#5b50d8', fontSize: 16 }}>→</span>
           </div>
         </article>
@@ -72,7 +72,7 @@ export function Mosaic({ news }: Props) {
           <h4 className="al-serif" style={{ fontSize: 19, lineHeight: 1.18, fontWeight: 600, marginBottom: 'auto' }}>{mover.title}</h4>
           <Tickers items={mover.tickers} dark />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #232a33', paddingTop: 12, marginTop: 14 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#a99bff' }}>✦ Price this event</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#a99bff' }}>✦ Signal</span>
             <span style={{ color: '#a99bff' }}>→</span>
           </div>
         </article>
@@ -88,7 +88,7 @@ export function Mosaic({ news }: Props) {
           <h4 className="al-serif al-link-hover" style={{ fontSize: 23, lineHeight: 1.14, fontWeight: 600, letterSpacing: '-.01em', marginBottom: 9 }}>{wide.title}</h4>
           <p style={{ fontSize: 13, lineHeight: 1.5, color: '#59606e', marginBottom: 14 }}>{wide.dek || wide.summary}</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#5b50d8' }}>✦ Price this event</span>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#5b50d8' }}>✦ Signal</span>
             <span style={{ color: '#5b50d8' }}>→</span>
           </div>
         </article>
@@ -105,7 +105,7 @@ export function Mosaic({ news }: Props) {
           <p style={{ fontSize: 12.5, lineHeight: 1.5, color: '#59606e', marginBottom: 14, flex: 1 }}>{(item as NewsItem).dek || (item as NewsItem).summary}</p>
           <Tickers items={(item as NewsItem).tickers} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #e6e0d3', paddingTop: 12 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#5b50d8' }}>✦ Generate</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#5b50d8' }}>✦ Signal</span>
             <span style={{ color: '#5b50d8' }}>→</span>
           </div>
         </article>
