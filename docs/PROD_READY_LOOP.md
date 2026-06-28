@@ -80,3 +80,18 @@ absentes. Dépendance : `SNAPTRADE_CLIENT_ID` + `SNAPTRADE_CONSUMER_KEY`.
   chatbot UI AG-UI), B1=8, C1=0, G=8.
 - DECIDE : ITERATING. Prochain = A2 (brancher le FloatingChat existant sur
   /api/ag-ui/run : dock moderne, thinking, streaming, bulles, UIBlocks).
+
+### Itération 3 — (a) AG-UI chatbot UX (2026-06-28)
+- PLAN : A2 = AgentDock moderne branché sur AG-UI.
+- DO : `FloatingChat.tsx` réécrit en AgentDock : client SSE /api/ag-ui/run, landing
+  intelligente (accueil + 4 suggestions financières), bulles user(droite)/
+  assistant(gauche, serif), animation thinking (points `al-dot`, prefers-reduced-
+  motion), streaming des deltas, chips d'appels d'outils (✓/◷ + libellés FR),
+  composer auto, nouveau-fil, deep-link #assistant. DA NYT crème/encre.
+- VÉRIFIÉ À L'ÉCRAN (#assistant) : dock ouvert, landing + suggestions + composer
+  propres. Build OK, déployé, healthcheck 200, rien cassé.
+- VERIFY : A1=8, **A2=7** (dock + streaming câblé OK ; manque les UIBlocks riches
+  rendus par l'agent — cards/tables/listes ; caveat : streaming interactif non
+  vérifié headless mais endpoint OK), B1=8, C1=0, G=8.
+- DECIDE : ITERATING. Prochain = A2 finir (UIBlocks : rendre les résultats d'outils
+  ex. search_markets en cards dans le dock) → puis C1 SnapTrade.
