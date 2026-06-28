@@ -95,3 +95,19 @@ absentes. Dépendance : `SNAPTRADE_CLIENT_ID` + `SNAPTRADE_CONSUMER_KEY`.
   vérifié headless mais endpoint OK), B1=8, C1=0, G=8.
 - DECIDE : ITERATING. Prochain = A2 finir (UIBlocks : rendre les résultats d'outils
   ex. search_markets en cards dans le dock) → puis C1 SnapTrade.
+
+### Itération 4 — (a) AG-UI UIBlocks → A2 complet (2026-06-28)
+- PLAN : finir A2 avec des UIBlocks (le plus faible).
+- DO : AgentDock — `AgentUIBlock` (allowlist) qui rend les résultats d'outils en
+  mini-cards : search_markets (cards question+%+barre+vol+Polymarket),
+  get_macro_snapshot (grille macro), get_quotes (chips), get_news (liste). Capté
+  via `ToolCallResult` (content JSON) → `blocks` sur le message assistant. Deep-link
+  `?ask=…#assistant` (auto-envoi). Données réelles uniquement, aucun composant
+  arbitraire du modèle.
+- VÉRIF VISUELLE RÉELLE (Chrome CDP, attente 18s) : le dock affiche la réponse +
+  bandeau macro réel + 3 market-cards Fed (81% avec barre). DA NYT. ✅
+- Build OK, déployé, healthcheck 200, rien cassé.
+- VERIFY : A1=8, **A2=8** (dock moderne + streaming + thinking + bulles + UIBlocks
+  réels, allowlist, vérifiés écran), B1=8, **C1=0**, G=8.
+- DECIDE : ITERATING. Chantier (a) AG-UI TERMINÉ. Prochain = (c) SnapTrade
+  (scaffolding sécurisé + connexion + holdings read-only, gating sur clés).

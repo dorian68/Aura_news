@@ -6,7 +6,8 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 // user/assistant (DA NYT crème/encre), affichage des appels d'outils réels.
 
 type Tool = { name: string; done: boolean }
-type Msg = { role: 'user' | 'assistant'; content: string; tools?: Tool[] }
+type Block = { tool: string; data: unknown }
+type Msg = { role: 'user' | 'assistant'; content: string; tools?: Tool[]; blocks?: Block[] }
 
 const SUGGESTIONS = [
   'Que pricent les marchés sur la prochaine décision de la Fed ?',
@@ -20,6 +21,77 @@ const TOOL_LABEL: Record<string, string> = {
   get_quotes: 'Cotations en direct', get_macro_snapshot: 'Snapshot macro',
 }
 
+// Allowlist de UIBlocks rendus à partir des résultats d'outils réels (jamais de
+// composant arbitraire généré par le modèle). Données réelles uniquement.
+const S = (v: unknown) => String(v ?? '')
+const N = (v: unknown) => (typeof v === 'number' ? v : Number(v)) || 0
+const rowsOf = (d: unknown): Record<string, unknown>[] => (Array.isArray(d) ? (d as Record<string, unknown>[]) : [])
+
+function AgentUIBlock({ block }: { block: Block }) {
+  if (block.tool === 'search_markets') {
+    const rows = rowsOf(block.data).slice(0, 3); if (!rows.length) return null
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, margin: '6px 0 2px' }}>
+        {rows.map((r, i) => {
+          const p = Math.max(0, Math.min(100, N(r.yesPct)))
+          return (
+            <div key={i} style={{ background: '#f7f4ec', border: '1px solid #e6e0d3', borderRadius: 9, padding: '8px 10px' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+                <span className="al-serif" style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.25 }}>{S(r.question)}</span>
+                <span className="al-mono" style={{ fontSize: 13, fontWeight: 700, color: '#2469a6' }}>{N(r.yesPct)}%</span>
+              </div>
+              <div style={{ height: 5, background: '#eee8db', borderRadius: 99, marginTop: 6 }}><div style={{ width: `${p}%`, height: '100%', background: '#2469a6', borderRadius: 99 }} /></div>
+              <div className="al-mono" style={{ fontSize: 9, color: '#a9a18f', marginTop: 4 }}>{S(r.category)} · {S(r.volume)} vol · Polymarket</div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+  if (block.tool === 'get_macro_snapshot') {
+    const rows = rowsOf(block.data); if (!rows.length) return null
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '6px 0 2px' }}>
+        {rows.map((r, i) => (
+          <div key={i} style={{ background: '#f7f4ec', border: '1px solid #e6e0d3', borderRadius: 8, padding: '5px 9px' }}>
+            <div className="al-mono" style={{ fontSize: 8.5, color: '#8b93a1', textTransform: 'uppercase' }}>{S(r.label)}</div>
+            <div style={{ display: 'flex', gap: 5, alignItems: 'baseline' }}>
+              <span className="al-mono" style={{ fontSize: 11.5, fontWeight: 700 }}>{N(r.price).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+              <span className="al-mono" style={{ fontSize: 10, fontWeight: 600, color: N(r.changePct) >= 0 ? '#0f7d56' : '#c43d34' }}>{N(r.changePct) >= 0 ? '+' : ''}{N(r.changePct).toFixed(2)}%</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+  if (block.tool === 'get_quotes') {
+    const rows = rowsOf(block.data); if (!rows.length) return null
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '6px 0 2px' }}>
+        {rows.map((r, i) => (
+          <span key={i} className="al-mono" style={{ fontSize: 10.5, padding: '3px 8px', borderRadius: 7, background: '#f7f4ec', border: '1px solid #e6e0d3' }}>
+            <b>{S(r.sym)}</b> {N(r.price).toLocaleString(undefined, { maximumFractionDigits: 2 })} <span style={{ color: N(r.changePct) >= 0 ? '#0f7d56' : '#c43d34' }}>{N(r.changePct) >= 0 ? '+' : ''}{N(r.changePct).toFixed(2)}%</span>
+          </span>
+        ))}
+      </div>
+    )
+  }
+  if (block.tool === 'get_news') {
+    const rows = rowsOf(block.data).slice(0, 3); if (!rows.length) return null
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '6px 0 2px' }}>
+        {rows.map((r, i) => (
+          <div key={i} style={{ borderLeft: '2px solid #dcd9f6', paddingLeft: 8 }}>
+            <div className="al-serif" style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.25 }}>{S(r.title)}</div>
+            <div className="al-mono" style={{ fontSize: 9, color: '#a9a18f' }}>{S(r.source)} · {S(r.section)}</div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+  return null
+}
+
 export function FloatingChat() {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Msg[]>([])
@@ -29,8 +101,14 @@ export function FloatingChat() {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }) }, [messages, thinking])
-  // Deep-link : ouvre l'assistant si l'URL contient #assistant.
-  useEffect(() => { if (typeof window !== 'undefined' && window.location.hash === '#assistant') setOpen(true) }, [])
+  // Deep-link : #assistant ouvre l'assistant ; ?ask=… auto-envoie la question.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.location.hash !== '#assistant') return
+    setOpen(true)
+    const ask = new URLSearchParams(window.location.search).get('ask')
+    if (ask) setTimeout(() => send(ask), 350)
+  }, [])
 
   const send = useCallback(async (text: string) => {
     const q = text.trim()
@@ -52,10 +130,23 @@ export function FloatingChat() {
         buf += dec.decode(value, { stream: true }); const parts = buf.split('\n\n'); buf = parts.pop() || ''
         for (const p of parts) {
           const line = p.split('\n').find(l => l.startsWith('data:')); if (!line) continue
-          let ev: { type?: string; toolCallName?: string; delta?: string }
+          let ev: { type?: string; toolCallName?: string; delta?: string; content?: string }
           try { ev = JSON.parse(line.slice(5).trim()) } catch { continue }
           if (ev.type === 'ToolCallStart') update(m => ({ ...m, tools: [...(m.tools || []), { name: ev.toolCallName || '', done: false }] }))
-          else if (ev.type === 'ToolCallResult') update(m => ({ ...m, tools: (m.tools || []).map((t, i, a) => i === a.findIndex(x => !x.done) ? { ...t, done: true } : t) }))
+          else if (ev.type === 'ToolCallResult') {
+            let data: unknown = null
+            try { data = JSON.parse(ev.content || 'null') } catch { /* ignore */ }
+            update(m => {
+              const tools = m.tools || []
+              const idx = tools.findIndex(t => !t.done)
+              const name = idx >= 0 ? tools[idx].name : ''
+              return {
+                ...m,
+                tools: tools.map((t, i) => (i === idx ? { ...t, done: true } : t)),
+                blocks: [...(m.blocks || []), { tool: name, data }],
+              }
+            })
+          }
           else if (ev.type === 'TextMessageContent') { setThinking(false); update(m => ({ ...m, content: m.content + (ev.delta || '') })) }
           else if (ev.type === 'RunError') { setThinking(false); update(m => ({ ...m, content: m.content || 'Désolé, une erreur est survenue. Réessaie.' })) }
         }
@@ -125,6 +216,7 @@ export function FloatingChat() {
                               {[0, 0.18, 0.36].map((d, k) => <span key={k} style={{ width: 7, height: 7, borderRadius: '50%', background: '#5b50d8', animation: `al-dot 1.1s ${d}s infinite` }} />)}
                             </div>
                           )}
+                        {m.blocks?.map((b, k) => <AgentUIBlock key={k} block={b} />)}
                       </div>
                     )}
                   </div>
