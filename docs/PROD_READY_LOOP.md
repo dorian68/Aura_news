@@ -65,3 +65,18 @@ absentes. Dépendance : `SNAPTRADE_CLIENT_ID` + `SNAPTRADE_CONSUMER_KEY`.
 - Build OK, déployé (deploy.sh), healthcheck public 200, rien cassé.
 - VERIFY (vérif écran desktop+mobile) : **B1=8**, **G=8**, A1=0, A2=0, C1=0.
 - DECIDE : ITERATING. Prochain pas = (a) AG-UI (backend endpoint SSE d'abord).
+
+### Itération 2 — (a) AG-UI backend (2026-06-28)
+- PLAN : endpoint SSE AG-UI + outils réels (A1).
+- DO : `src/lib/agui/tools.ts` (registre : search_markets, get_news, get_quotes,
+  get_macro_snapshot — tous réels, read-only, + `sanitizeForAgent`) ;
+  `src/app/api/ag-ui/run/route.ts` (SSE : RunStarted→StateSnapshot→boucle
+  function-calling gpt-4o-mini avec ToolCall* → réponse finale streamée
+  TextMessage* → RunFinished/RunError). Prompt système anti-fabrication.
+- Tests backend (curl) local + PROD : 2 outils appelés (search_markets+get_quotes),
+  streaming OK, réponse grounded (« 81% Fed inchangée »). Build OK, déployé,
+  healthcheck 200, rien cassé.
+- VERIFY : **A1=8** (approvals N/A justifié : outils read-only), **A2=2** (pas de
+  chatbot UI AG-UI), B1=8, C1=0, G=8.
+- DECIDE : ITERATING. Prochain = A2 (brancher le FloatingChat existant sur
+  /api/ag-ui/run : dock moderne, thinking, streaming, bulles, UIBlocks).
