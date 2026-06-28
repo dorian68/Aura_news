@@ -32,3 +32,11 @@ create table if not exists alphalens_contact_messages (
 );
 alter table alphalens_contact_messages enable row level security;
 -- (service_role bypasses RLS; no anon policy = anon can't read/write directly)
+
+-- SnapTrade: secret par utilisateur (stocké SERVEUR uniquement, jamais exposé).
+create table if not exists alphalens_snaptrade_users (
+  user_id     text primary key,
+  user_secret text not null,
+  created_at  timestamptz not null default now()
+);
+alter table alphalens_snaptrade_users enable row level security;

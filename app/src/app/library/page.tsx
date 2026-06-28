@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/lib/store'
 import type { GeneratedReport } from '@/lib/generation/output-schema'
 import type { TradeReport } from '@/lib/generation/trade-prompt'
+import { BrokerageConnect } from '@/components/BrokerageConnect'
 
 export default function LibraryPage() {
   const router = useRouter()
@@ -191,6 +192,7 @@ export default function LibraryPage() {
           {/* RIGHT: sidebar cards */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <WatchlistCard watchlist={watchlist} />
+            <BrokerageConnect />
             <AlertsCard />
           </div>
         </div>

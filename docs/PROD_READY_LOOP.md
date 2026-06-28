@@ -111,3 +111,28 @@ absentes. Dépendance : `SNAPTRADE_CLIENT_ID` + `SNAPTRADE_CONSUMER_KEY`.
   réels, allowlist, vérifiés écran), B1=8, **C1=0**, G=8.
 - DECIDE : ITERATING. Chantier (a) AG-UI TERMINÉ. Prochain = (c) SnapTrade
   (scaffolding sécurisé + connexion + holdings read-only, gating sur clés).
+
+### Itération 5 — (c) SnapTrade → C1 (2026-06-28)
+- PLAN : scaffolding SnapTrade sécurisé + dégradation propre.
+- DO : `src/lib/snaptrade.ts` (clés SERVEUR only, isConfigured, registerUser,
+  connectionPortalUrl, listHoldings read-only, signature HMAC documentée) ;
+  routes `GET /api/snaptrade/status`, `POST /api/snaptrade/connect` (userSecret
+  stocké serveur, jamais au client), `GET /api/snaptrade/holdings` ;
+  `BrokerageConnect.tsx` dans la Library ; table `alphalens_snaptrade_users` ;
+  `.env.example` ; `docs/SNAPTRADE.md`.
+- VÉRIFIÉ : status → {configured:false}, connect → 503 propre (« bientôt »),
+  carte « Your brokerage / 🔒 Bientôt disponible » rendue (CDP). Build OK, déployé,
+  healthcheck 200, rien cassé, 0 secret committé, 0 donnée fabriquée.
+- VERIFY : A1=8, A2=8, B1=8, **C1=8** (bar convenu : code prêt + déployé +
+  dégradation propre sans clés ; caveat : flux live non testable sans clés,
+  signature à confronter au SDK à l'activation), G=8.
+- DECIDE : **FINAL** ✅ — TOUS ≥ 8, build OK, déployé sans rien casser.
+
+## 🏁 FINAL — a + b + c prod-ready (2026-06-28)
+- (a) AG-UI : endpoint SSE + 4 outils réels + AgentDock moderne (streaming,
+  thinking, UIBlocks réels) — A1=8, A2=8.
+- (b) Landing : éditorial NYT, financial-first, responsive — B1=8.
+- (c) SnapTrade : intégration sécurisée prête + déployée, gated sur les clés — C1=8.
+- Prod : live sur https://auranews.optiquant-ia.com, build OK, healthcheck 200.
+Suivis (non bloquants, dépendances externes) : fournir les clés SnapTrade pour
+activer le live ; approvals human-in-the-loop si on ajoute des outils d'écriture.
